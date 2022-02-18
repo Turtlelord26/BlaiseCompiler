@@ -1,0 +1,8 @@
+{
+  "antlr4.format": {
+    "alignColons": "hanging",
+    "allowShortBlocksOnASingleLine": false,
+    "allowShortRulesOnASingleLine": false
+  },
+  "editor.formatOnSave": true
+}

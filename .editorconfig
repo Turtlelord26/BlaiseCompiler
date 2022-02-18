@@ -1,0 +1,31 @@
+﻿root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = lf
+trim_trailing_whitespace = true
+
+[*.yml]
+indent_size = 2
+
+[*.g.cs]
+
+[*.cs]
+dotnet_diagnostic.IDE0001.severity = error
+dotnet_diagnostic.IDE0005.severity = error
+dotnet_diagnostic.IDE0044.severity = error
+
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.IDE0017.severity = none
+dotnet_diagnostic.IDE0051.severity = none
+dotnet_diagnostic.IDE0052.severity = none
+dotnet_diagnostic.IDE0060.severity = none
+dotnet_diagnostic.IDE0063.severity = none
+dotnet_diagnostic.IDE0066.severity = none
+dotnet_diagnostic.IDE0090.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.SYSLIB0003.severity = none
+
+csharp_style_prefer_range_operator = false
