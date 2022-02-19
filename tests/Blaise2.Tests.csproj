@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\blaise2.csproj" />
+    <ProjectReference Include="..\src\Blaise2.csproj" />
   </ItemGroup>
 
 </Project>
