@@ -1,4 +1,6 @@
 using System;
+using static Blaise2.Ast.BinaryOperator;
+using static Blaise2.Ast.BooleanOperator;
 
 namespace Blaise2.Ast
 {
@@ -43,5 +45,26 @@ namespace Blaise2.Ast
 
             return btype;
         }
+
+        private static BinaryOperator GetBinaryOperator(string op) => op switch
+        {
+            "^" => Pow,
+            "*" => Mul,
+            "/" => Div,
+            "+" => Add,
+            "-" => Sub,
+            _ => throw new InvalidOperationException($"Invalid Binary Operator String {op}.")
+        };
+
+        private static BooleanOperator GetBooleanOperator(string op) => op switch
+        {
+            ">" => Gt,
+            "<" => Lt,
+            "=" => Eq,
+            "<>" => Ne,
+            ">=" => Gte,
+            "<=" => Lte,
+            _ => throw new InvalidOperationException($"Invalid Boolean Operator String {op}.")
+        };
     }
 }

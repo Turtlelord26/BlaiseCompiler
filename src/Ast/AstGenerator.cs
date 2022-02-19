@@ -164,7 +164,7 @@ namespace Blaise2.Ast
                 {
                     n.Lhs = VisitExpression(context.lhs).WithParent(n);
                     n.Rhs = VisitExpression(context.rhs).WithParent(n);
-                    n.Op = context.op.Text;
+                    n.Op = GetBinaryOperator(context.op.Text);
                 });
             }
             else if (context.boolop != null)
@@ -173,7 +173,7 @@ namespace Blaise2.Ast
                 {
                     n.Lhs = VisitExpression(context.lhs).WithParent(n);
                     n.Rhs = VisitExpression(context.rhs).WithParent(n);
-                    n.Op = context.op.Text;
+                    n.Op = GetBooleanOperator(context.op.Text);
                 });
             }
             else if (context.inner != null)

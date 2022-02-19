@@ -1,5 +1,7 @@
 using System;
 using Blaise2.Ast;
+using static Blaise2.Ast.BinaryOperator;
+using static Blaise2.Ast.BooleanOperator;
 
 namespace Blaise2.Emitters
 {
@@ -53,5 +55,67 @@ namespace Blaise2.Emitters
 
             throw new InvalidOperationException($"unknown variable {variableName}");
         }
+
+        private static AbstractAstNode FindFunction(AbstractAstNode curNode, string funcName)
+        {
+            while (curNode is not null)
+            {
+                if (curNode is FunctionNode)
+                {
+                    var func = curNode as FunctionNode;
+                    if (func.Identifier.Equals(funcName))
+                    {
+                        return func;
+                    }
+                }
+                else if (curNode is ProcedureNode)
+                {
+                    var proc = curNode as ProcedureNode;
+                    if (proc.Identifier.Equals(funcName))
+                    {
+                        return proc;
+                    }
+                }
+                curNode = curNode.Parent;
+            }
+            throw new InvalidOperationException($"Target not found for function call to {funcName}");
+        }
+
+        private static string ToCilOperator(BinaryOperator op) => op switch
+        {
+            Pow => throw new NotImplementedException("Exponentiation unimplemented."),
+            Mul => @"
+    mul",
+            Div => @"
+    div",
+            Add => @"
+    add",
+            Sub => @"
+    sub",
+            _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
+        };
+
+        private static string ToCilOperator(BooleanOperator op) => op switch
+        {
+            Gt => @"
+    cgt",
+            Lt => @"
+    clt",
+            Eq => @"
+    ceq",
+            Ne => @"
+    ceq
+    ldc.i4.0
+    ceq",
+            Gte => @"
+    clt
+    ldc.i4.0
+    ceq",
+            Lte => @"
+    cgt
+    ldc.i4.0
+    ceq",
+            _ => throw new InvalidOperationException($"Invalid Boolean Operator {op}")
+        };
     }
 }

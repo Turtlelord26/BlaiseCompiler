@@ -34,7 +34,7 @@ namespace Blaise2.Ast
 
     // ProgramNode subsumes routines
 
-    public partial class ProcedureNode : AbstractAstNode
+    public partial class ProcedureNode : AbstractAstNode, IVarOwner
     {
         public string Identifier { get; set; }
         // using VarDeclNode to store argument info, not to be a node in the AST
@@ -43,7 +43,7 @@ namespace Blaise2.Ast
         public AbstractAstNode Stat { get; set; }
     }
 
-    public partial class FunctionNode : AbstractAstNode
+    public partial class FunctionNode : AbstractAstNode, IVarOwner
     {
         public string Identifier { get; set; }
         public BlaiseType ReturnType { get; set; }
@@ -112,13 +112,13 @@ namespace Blaise2.Ast
     {
         public AbstractAstNode Lhs { get; set; }
         public AbstractAstNode Rhs { get; set; }
-        public string Op { get; set; }
+        public BinaryOperator Op { get; set; }
     }
 
     public partial class BooleanOpNode : AbstractAstNode
     {
         public AbstractAstNode Lhs { get; set; }
         public AbstractAstNode Rhs { get; set; }
-        public string Op { get; set; }
+        public BooleanOperator Op { get; set; }
     }
 }
