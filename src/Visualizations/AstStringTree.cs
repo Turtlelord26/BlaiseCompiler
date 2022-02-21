@@ -35,14 +35,10 @@ namespace Blaise2.Visualizations
             return $"({node.Identifier}: {node.BlaiseType})";
         }
 
-        public override string Visit(ProcedureNode node)
-        {
-            return $"(procedure {node.Identifier}" + Visit((dynamic)node.Stat) + ")";
-        }
-
         public override string Visit(FunctionNode node)
         {
-            return $"(function {node.ReturnType} {node.Identifier}" + Visit((dynamic)node.Stat) + ")";
+            return node.IsFunction ? $"(function {node.ReturnType} {node.Identifier}" + Visit((dynamic)node.Stat) + ")"
+                                   : $"(procedure {node.Identifier}" + Visit((dynamic)node.Stat) + ")";
         }
 
         public override string Visit(BlockNode node)

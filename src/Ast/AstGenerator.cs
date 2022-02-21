@@ -21,9 +21,12 @@ namespace Blaise2.Ast
             var node = new ProgramNode().Build(n =>
             {
                 n.ProgramName = context.programDecl().IDENTIFIER().GetText();
-                n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
-                n.Procedures = routines?._procs.Select(p => (ProcedureNode)VisitProcedure(p).WithParent(n)).ToList() ?? new List<ProcedureNode>();
-                n.Functions = routines?._funcs.Select(f => (FunctionNode)VisitFunction(f).WithParent(n)).ToList() ?? new List<FunctionNode>();
+                n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList()
+                            ?? new List<VarDeclNode>();
+                n.Procedures = routines?._procs.Select(p => VisitProcedure(p).WithParent(n)).OfType<FunctionNode>().ToList()
+                            ?? new List<FunctionNode>();
+                n.Functions = routines?._funcs.Select(f => VisitFunction(f).WithParent(n)).OfType<FunctionNode>().ToList()
+                            ?? new List<FunctionNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
             });
 
@@ -47,9 +50,10 @@ namespace Blaise2.Ast
                 n.BlaiseType = BuildBlaiseType(v.typeExpr());
             }));
 
-            return Build<ProcedureNode>(n =>
+            return Build<FunctionNode>(n =>
             {
                 n.Identifier = context.IDENTIFIER().GetText();
+                n.IsFunction = false;
                 n.Args = args.Select(a => a.WithParent(n)).ToList();
                 n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
@@ -67,6 +71,7 @@ namespace Blaise2.Ast
             return Build<FunctionNode>(n =>
             {
                 n.Identifier = context.IDENTIFIER().GetText();
+                n.IsFunction = true;
                 n.ReturnType = BuildBlaiseType(context.typeExpr());
                 n.Args = args.Select(a => a.WithParent(n)).ToList();
                 n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();

@@ -12,7 +12,7 @@ namespace Blaise2.Ast
     {
         public string ProgramName { get; set; }
         public List<VarDeclNode> VarDecls { get; set; }
-        public List<ProcedureNode> Procedures { get; set; }
+        public List<FunctionNode> Procedures { get; set; }
         public List<FunctionNode> Functions { get; set; }
         public AbstractAstNode Stat { get; set; }
     }
@@ -34,18 +34,10 @@ namespace Blaise2.Ast
 
     // ProgramNode subsumes routines
 
-    public partial class ProcedureNode : AbstractAstNode, IVarOwner
-    {
-        public string Identifier { get; set; }
-        // using VarDeclNode to store argument info, not to be a node in the AST
-        public List<VarDeclNode> Args { get; set; }
-        public List<VarDeclNode> VarDecls { get; set; }
-        public AbstractAstNode Stat { get; set; }
-    }
-
     public partial class FunctionNode : AbstractAstNode, IVarOwner
     {
         public string Identifier { get; set; }
+        public bool IsFunction { get; set; }
         public BlaiseType ReturnType { get; set; }
         // using VarDeclNode to store argument info, not to be a node in the AST
         public List<VarDeclNode> Args { get; set; }

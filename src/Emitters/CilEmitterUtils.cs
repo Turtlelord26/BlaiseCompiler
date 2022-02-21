@@ -68,14 +68,6 @@ namespace Blaise2.Emitters
                         return func;
                     }
                 }
-                else if (curNode is ProcedureNode)
-                {
-                    var proc = curNode as ProcedureNode;
-                    if (proc.Identifier.Equals(funcName))
-                    {
-                        return proc;
-                    }
-                }
                 curNode = curNode.Parent;
             }
             throw new InvalidOperationException($"Target not found for function call to {funcName}");

@@ -57,75 +57,51 @@ namespace Blaise2.Emitters
             return Cil;
         }
 
-        public override string Visit(ProcedureNode node)
-        {
-            var output = @$"
-    .method public hidebysig 
-        instance void {node.Identifier} (";
-            output += string.Join("", node.Args.Select(p => @$"
-            {p.BlaiseType.ToCilType()} {p.Identifier}"));
-            output += @"
-        ) cil managed
-    {";
-            if (node.VarDecls.Count > 0)
-            {
-                output += @"
-        .locals init (";
-                var index = 0;
-                foreach (var v in node.VarDecls)
-                {
-                    v.Index = index;
-                    output += @$"
-            [{v.Index}] {v.BlaiseType.ToCilType()} {v.Identifier}";
-                }
-                index++;
-                output += @"
-        )
-        nop";
-            }
-            //THIS IS WHERE FUNCS AND PROCS WOULD GO
-            output += Visit((dynamic)node.Stat);
-            output += @"
-        nop
-        ret
-    }";
-            return output;
-        }
-
         public override string Visit(FunctionNode node)
         {
-            //Make a local for the return value
-            node.VarDecls.Add(Build<VarDeclNode>(n =>
-            {
-                n.Identifier = node.Identifier;
-                n.BlaiseType = node.ReturnType;
-                n.Index = 0;
-            }));
+
+            var isFunction = node.IsFunction;
+            var returnType = isFunction ? node.ReturnType.ToCilType() : "void";
             var output = @$"
     .method public hidebysig 
-        instance {node.ReturnType.ToCilType()} {node.Identifier} (";
+        instance {returnType} {node.Identifier} (";
             output += string.Join("", node.Args.Select(p => @$"
             {p.BlaiseType.ToCilType()} {p.Identifier}"));
             output += @"
         ) cil managed
     {";
-            output += @$"
-        .locals init (
-            [0] {node.ReturnType.ToCilType()}";
-            if (node.VarDecls.Count > 0)
+            if (isFunction | node.VarDecls.Count > 0)
             {
-                var index = 1;
+                var index = 0;
+                output += @$"
+        .locals init (";
+                if (isFunction)
+                {
+                    output += @$"
+            [0] {node.ReturnType.ToCilType()}";
+                    index++;
+                }
                 foreach (var v in node.VarDecls)
                 {
                     v.Index = index;
                     output += @$"
-            [{v.Index}] {v.BlaiseType.ToCilType()} {v.Identifier}";
+        [{v.Index}] {v.BlaiseType.ToCilType()} {v.Identifier}";
+                    index++;
                 }
-                index++;
-            }
-            output += @"
+                output += @"
         )
         nop";
+            }
+            //Make a findable VarDecl for the return value if its a function
+            if (isFunction)
+            {
+                node.VarDecls.Add(Build<VarDeclNode>(n =>
+                {
+                    n.Identifier = node.Identifier;
+                    n.BlaiseType = node.ReturnType;
+                    n.Index = 0;
+                }));
+            }
             //THIS IS WHERE FUNCS AND PROCS WOULD GO
             output += Visit((dynamic)node.Stat);
             output += @"

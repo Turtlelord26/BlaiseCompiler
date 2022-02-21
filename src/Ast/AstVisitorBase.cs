@@ -12,11 +12,6 @@ namespace Blaise2.Ast
             return default;
         }
 
-        public virtual R Visit(ProcedureNode node)
-        {
-            return default;
-        }
-
         public virtual R Visit(FunctionNode node)
         {
             return default;
