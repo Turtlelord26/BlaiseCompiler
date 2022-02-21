@@ -85,6 +85,7 @@ expression
 	) right = expression
 	| left = expression boolop = COMP right = expression
 	| LPAREN inner = expression RPAREN
+	| functionCall
 	| sign = (PLUS | MINUS)? numericAtom
 	| atom;
 
@@ -110,8 +111,7 @@ atom
 	: IDENTIFIER
 	| BOOLEAN
 	| CHAR
-	| STRING
-	| functionCall;
+	| STRING;
 
 KINTEGER
 	: 'integer';

@@ -4,8 +4,14 @@ namespace Blaise2.Ast
 {
     public abstract class AbstractAstNode
     {
+        public static AbstractAstNode Empty { get; private set; } = new EmptyNode();
+
         public AbstractAstNode Parent { get; set; }
         public virtual string Type => GetType().Name;
+
+        public bool IsEmpty() => Equals(Empty);
+
+        private class EmptyNode : AbstractAstNode { }
     }
 
     public partial class ProgramNode : AbstractAstNode, IVarOwner
@@ -17,7 +23,7 @@ namespace Blaise2.Ast
         public AbstractAstNode Stat { get; set; }
     }
 
-    public partial class VarDeclNode : AbstractAstNode
+    public class VarDeclNode : AbstractAstNode
     {
         public string Identifier { get; set; }
 
@@ -49,20 +55,20 @@ namespace Blaise2.Ast
 
     // stat is not needed as we'll just use the different statement nodes
 
-    public partial class BlockNode : AbstractAstNode
+    public class BlockNode : AbstractAstNode
     {
         public List<AbstractAstNode> Stats { get; set; }
     }
 
     // writeln is just a special case of write
 
-    public partial class WriteNode : AbstractAstNode
+    public class WriteNode : AbstractAstNode
     {
         public AbstractAstNode Expression { get; set; }
         public bool WriteNewline { get; set; }
     }
 
-    public partial class AssignmentNode : AbstractAstNode
+    public class AssignmentNode : AbstractAstNode
     {
         public string Identifier { get; set; }
         public AbstractAstNode Expression { get; set; }
@@ -72,7 +78,7 @@ namespace Blaise2.Ast
 
     // RealNode and IntegerNode will be used directly instead of numericAtom
 
-    public partial class FunctionCallNode : AbstractAstNode
+    public class FunctionCallNode : AbstractAstNode
     {
         public string Identifier { get; set; }
         public bool IsFunction { get; set; }
@@ -81,34 +87,44 @@ namespace Blaise2.Ast
 
     // expression is not needed as we'll just use the individual alts' nodes
 
-    public partial class IntegerNode : AbstractAstNode
+    public class IntegerNode : AbstractAstNode
     {
         public int IntValue { get; set; }
     }
 
-    public partial class RealNode : AbstractAstNode
+    public class RealNode : AbstractAstNode
     {
         public double RealValue { get; set; }
     }
 
-    public partial class StringNode : AbstractAstNode
-    {
-        public string StringValue { get; set; }
-    }
-
-    public partial class VarRefNode : AbstractAstNode
+    public class VarRefNode : AbstractAstNode
     {
         public string Identifier { get; set; }
     }
 
-    public partial class BinaryOpNode : AbstractAstNode
+    public class BooleanNode : AbstractAstNode
+    {
+        public bool BoolValue { get; set; }
+    }
+
+    public class CharNode : AbstractAstNode
+    {
+        public char CharValue { get; set; }
+    }
+
+    public class StringNode : AbstractAstNode
+    {
+        public string StringValue { get; set; }
+    }
+
+    public class BinaryOpNode : AbstractAstNode
     {
         public AbstractAstNode Left { get; set; }
         public AbstractAstNode Right { get; set; }
         public BinaryOperator Operator { get; set; }
     }
 
-    public partial class BooleanOpNode : AbstractAstNode
+    public class BooleanOpNode : AbstractAstNode
     {
         public AbstractAstNode Left { get; set; }
         public AbstractAstNode Right { get; set; }

@@ -1,3 +1,5 @@
+using System;
+
 namespace Blaise2.Ast
 {
     public class AstVisitorBase<R>
@@ -65,6 +67,15 @@ namespace Blaise2.Ast
         public virtual R Visit(BooleanOpNode node)
         {
             return default;
+        }
+
+        public virtual R Visit(AbstractAstNode node)
+        {
+            if (node.IsEmpty())
+            {
+                return default;
+            }
+            throw new InvalidOperationException($"Unrecognized AstNode of type {node.Type}");
         }
     }
 }
