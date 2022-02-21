@@ -39,7 +39,7 @@ stat
 	: assignment
 	| write
 	| writeln
-	| functionCall
+	| procedureCall
 	| block;
 
 block
@@ -63,52 +63,55 @@ routines
 	)+;
 
 procedure
-	: 'procedure' IDENTIFIER argsList SEMI varBlock? stat SEMI;
+	: 'procedure' IDENTIFIER LPAREN paramsList? RPAREN SEMI varBlock? stat SEMI;
 
 function
-	: 'function' IDENTIFIER argsList ':' typeExpr SEMI varBlock? stat SEMI;
+	: 'function' IDENTIFIER LPAREN paramsList? RPAREN ':' typeExpr SEMI varBlock? stat SEMI;
 
-argsList
-	: '(' ')'
-	| '(' v += varDecl (SEMI v += varDecl)* ')';
+paramsList
+	: var += varDecl (
+		SEMI var += varDecl
+	)*;
 
 expression
-	: lhs = expression op = POW rhs = expression
-	| lhs = expression op = (
+	: left = expression binop = POW right = expression
+	| left = expression binop = (
 		TIMES
 		| DIV
-	) rhs = expression
-	| lhs = expression op = (
+	) right = expression
+	| left = expression binop = (
 		PLUS
 		| MINUS
-	) rhs = expression
-	| lhs = expression boolop = (
-		GT
-		| LT
-		| EQ
-		| NE
-		| GTE
-		| LTE
-	) rhs = expression
+	) right = expression
+	| left = expression boolop = COMP right = expression
 	| LPAREN inner = expression RPAREN
 	| sign = (PLUS | MINUS)? numericAtom
 	| atom;
+
+procedureCall
+	: call;
+
+functionCall
+	: call;
+
+call
+	: IDENTIFIER LPAREN argsList? RPAREN;
+
+argsList
+	: args += expression (
+		',' args += expression
+	)*;
 
 numericAtom
 	: INTEGER
 	| REAL;
 
 atom
-	: STRING
-	| functionCall
-	| IDENTIFIER;
-
-functionCall
-	: IDENTIFIER '(' (
-		arg += expression (
-			',' arg += expression
-		)*
-	)? ')';
+	: IDENTIFIER
+	| BOOLEAN
+	| CHAR
+	| STRING
+	| functionCall;
 
 KINTEGER
 	: 'integer';
@@ -126,9 +129,9 @@ KSTRING
 	: 'string';
 
 INTEGER
-	: [0-9]+;
+	: INTEGERPART;
 REAL
-	: NUMBER+;
+	: INTEGERPART '.' DECIMALPART;
 
 STRING
 	: '\'' (
@@ -138,8 +141,8 @@ STRING
 CHAR
 	: '\'' . '\'';
 BOOLEAN
-	: TRUE
-	| FALSE;
+	: 'true'
+	| 'false';
 
 IDENTIFIER
 	: VALID_ID_START VALID_ID_CHAR*;
@@ -156,18 +159,13 @@ TIMES
 	: '*';
 DIV
 	: '/';
-GT
-	: '>';
-LT
-	: '<';
-EQ
-	: '=';
-NE
-	: '<>';
-GTE
-	: '>=';
-LTE
-	: '<=';
+COMP
+	: GT
+	| LT
+	| EQ
+	| NE
+	| GTE
+	| LTE;
 POINT
 	: '.';
 POW
@@ -189,21 +187,30 @@ fragment VALID_ID_START
 fragment VALID_ID_CHAR
 	: VALID_ID_START
 	| [0-9];
-fragment NUMBER
-	: [0-9]+ (
-		'.' [0-9]+
-	)?;
-fragment UNSIGNED_INTEGER
-	: [0-9]+;
+fragment INTEGERPART
+	: TERMINALDIGIT DIGIT*
+	| ZERO;
+fragment DECIMALPART
+	: DIGIT* TERMINALDIGIT
+	| ZERO;
+fragment ZERO
+	: '0';
+fragment DIGIT
+	: [0-9];
+fragment TERMINALDIGIT
+	: [1-9];
 fragment E
 	: 'E'
 	| 'e';
-fragment SIGN
-	: (
-		'+'
-		| '-'
-	);
-fragment TRUE
-	: 'true';
-fragment FALSE
-	: 'false';
+fragment GT
+	: '>';
+fragment LT
+	: '<';
+fragment EQ
+	: '=';
+fragment NE
+	: '<>';
+fragment GTE
+	: '>=';
+fragment LTE
+	: '<=';

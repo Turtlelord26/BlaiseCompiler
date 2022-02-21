@@ -44,7 +44,7 @@ namespace Blaise2.Ast
 
         public override AbstractAstNode VisitProcedure([NotNull] BlaiseParser.ProcedureContext context)
         {
-            var args = context.argsList()._v.Select(v => Build<VarDeclNode>(n =>
+            var args = context.paramsList()?._var.Select(v => Build<VarDeclNode>(n =>
             {
                 n.Identifier = v.IDENTIFIER().GetText();
                 n.BlaiseType = BuildBlaiseType(v.typeExpr());
@@ -54,7 +54,7 @@ namespace Blaise2.Ast
             {
                 n.Identifier = context.IDENTIFIER().GetText();
                 n.IsFunction = false;
-                n.Args = args.Select(a => a.WithParent(n)).ToList();
+                n.Args = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
             });
@@ -62,7 +62,7 @@ namespace Blaise2.Ast
 
         public override AbstractAstNode VisitFunction([NotNull] BlaiseParser.FunctionContext context)
         {
-            var args = context.argsList()._v.Select(v => Build<VarDeclNode>(n =>
+            var args = context.paramsList()?._var.Select(v => Build<VarDeclNode>(n =>
             {
                 n.Identifier = v.IDENTIFIER().GetText();
                 n.BlaiseType = BuildBlaiseType(v.typeExpr());
@@ -73,7 +73,7 @@ namespace Blaise2.Ast
                 n.Identifier = context.IDENTIFIER().GetText();
                 n.IsFunction = true;
                 n.ReturnType = BuildBlaiseType(context.typeExpr());
-                n.Args = args.Select(a => a.WithParent(n)).ToList();
+                n.Args = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
             });
@@ -152,33 +152,36 @@ namespace Blaise2.Ast
             }
         }
 
-        public override AbstractAstNode VisitFunctionCall([NotNull] BlaiseParser.FunctionCallContext context)
+        public override AbstractAstNode VisitProcedureCall([NotNull] BlaiseParser.ProcedureCallContext context) => MakeCallNode(context.call(), false);
+
+        public override AbstractAstNode VisitFunctionCall([NotNull] BlaiseParser.FunctionCallContext context) => MakeCallNode(context.call(), true);
+
+        private AbstractAstNode MakeCallNode([NotNull] BlaiseParser.CallContext context, bool isFunction) => Build<FunctionCallNode>(n =>
         {
-            return Build<FunctionCallNode>(n =>
-            {
-                n.Identifier = context.IDENTIFIER().GetText();
-                n.ArgumentExpressions = context._arg.Select(a => VisitExpression(a).WithParent(n)).ToList();
-            });
-        }
+            n.Identifier = context.IDENTIFIER().GetText();
+            n.IsFunction = isFunction;
+            n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).ToList()
+                                    ?? new List<AbstractAstNode>();
+        });
 
         public override AbstractAstNode VisitExpression([NotNull] BlaiseParser.ExpressionContext context)
         {
-            if (context.op != null)
+            if (context.binop != null)
             {
                 return Build<BinaryOpNode>(n =>
                 {
-                    n.Lhs = VisitExpression(context.lhs).WithParent(n);
-                    n.Rhs = VisitExpression(context.rhs).WithParent(n);
-                    n.Op = GetBinaryOperator(context.op.Text);
+                    n.Left = VisitExpression(context.left).WithParent(n);
+                    n.Right = VisitExpression(context.right).WithParent(n);
+                    n.Operator = GetBinaryOperator(context.binop.Text);
                 });
             }
             else if (context.boolop != null)
             {
                 return Build<BooleanOpNode>(n =>
                 {
-                    n.Lhs = VisitExpression(context.lhs).WithParent(n);
-                    n.Rhs = VisitExpression(context.rhs).WithParent(n);
-                    n.Op = GetBooleanOperator(context.op.Text);
+                    n.Left = VisitExpression(context.left).WithParent(n);
+                    n.Right = VisitExpression(context.right).WithParent(n);
+                    n.Operator = GetBooleanOperator(context.binop.Text);
                 });
             }
             else if (context.inner != null)

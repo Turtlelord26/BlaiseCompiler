@@ -75,7 +75,8 @@ namespace Blaise2.Ast
     public partial class FunctionCallNode : AbstractAstNode
     {
         public string Identifier { get; set; }
-        public List<AbstractAstNode> ArgumentExpressions { get; set; }
+        public bool IsFunction { get; set; }
+        public List<AbstractAstNode> Arguments { get; set; }
     }
 
     // expression is not needed as we'll just use the individual alts' nodes
@@ -102,15 +103,15 @@ namespace Blaise2.Ast
 
     public partial class BinaryOpNode : AbstractAstNode
     {
-        public AbstractAstNode Lhs { get; set; }
-        public AbstractAstNode Rhs { get; set; }
-        public BinaryOperator Op { get; set; }
+        public AbstractAstNode Left { get; set; }
+        public AbstractAstNode Right { get; set; }
+        public BinaryOperator Operator { get; set; }
     }
 
     public partial class BooleanOpNode : AbstractAstNode
     {
-        public AbstractAstNode Lhs { get; set; }
-        public AbstractAstNode Rhs { get; set; }
-        public BooleanOperator Op { get; set; }
+        public AbstractAstNode Left { get; set; }
+        public AbstractAstNode Right { get; set; }
+        public BooleanOperator Operator { get; set; }
     }
 }

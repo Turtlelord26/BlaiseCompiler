@@ -155,7 +155,7 @@ namespace Blaise2.Emitters
             {
                 var func = target as FunctionNode;
                 var paramTypes = string.Join(' ', func.Args.Select(p => p.BlaiseType.ToCilType()));
-                var argExprs = string.Join('\n', node.ArgumentExpressions.Select(a => Visit((dynamic)a)).Reverse());
+                var argExprs = string.Join('\n', node.Arguments.Select(a => Visit((dynamic)a)).Reverse());
                 return @$"
     ldarg.0
     {argExprs}
@@ -165,7 +165,7 @@ namespace Blaise2.Emitters
             {
                 var proc = target as FunctionNode;
                 var paramTypes = string.Join(' ', proc.Args.Select(p => p.BlaiseType.ToCilType()));
-                var argExprs = string.Join('\n', node.ArgumentExpressions.Select(a => Visit((dynamic)a)).Reverse());
+                var argExprs = string.Join('\n', node.Arguments.Select(a => Visit((dynamic)a)).Reverse());
                 return @$"
     ldarg.0
     {argExprs}
@@ -198,8 +198,8 @@ namespace Blaise2.Emitters
             };
         }
 
-        public override string Visit(BinaryOpNode node) => $"{Visit((dynamic)node.Lhs)}{Visit((dynamic)node.Rhs)}{ToCilOperator(node.Op)}";
+        public override string Visit(BinaryOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
 
-        public override string Visit(BooleanOpNode node) => $"{Visit((dynamic)node.Lhs)}{Visit((dynamic)node.Rhs)}{ToCilOperator(node.Op)}";
+        public override string Visit(BooleanOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
     }
 }

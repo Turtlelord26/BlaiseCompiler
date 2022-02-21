@@ -59,7 +59,7 @@ namespace Blaise2.Visualizations
 
         public override string Visit(FunctionCallNode node)
         {
-            return $"(invoke {node.Identifier} " + string.Join(" ", node.ArgumentExpressions.Select(e => Visit((dynamic)e))) + ")";
+            return $"(invoke {node.Identifier} " + string.Join(" ", node.Arguments.Select(e => Visit((dynamic)e))) + ")";
         }
 
         public override string Visit(IntegerNode node)
@@ -84,12 +84,12 @@ namespace Blaise2.Visualizations
 
         public override string Visit(BinaryOpNode node)
         {
-            return $"(binop {node.Op} {Visit((dynamic)node.Lhs)} {Visit((dynamic)node.Rhs)}";
+            return $"(binop {node.Operator} {Visit((dynamic)node.Left)} {Visit((dynamic)node.Right)}";
         }
 
         public override string Visit(BooleanOpNode node)
         {
-            return $"(binop {node.Op} {Visit((dynamic)node.Lhs)} {Visit((dynamic)node.Rhs)}";
+            return $"(binop {node.Operator} {Visit((dynamic)node.Left)} {Visit((dynamic)node.Right)}";
         }
     }
 }
