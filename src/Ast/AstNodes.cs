@@ -46,7 +46,7 @@ namespace Blaise2.Ast
         public bool IsFunction { get; set; }
         public BlaiseType ReturnType { get; set; }
         // using VarDeclNode to store argument info, not to be a node in the AST
-        public List<VarDeclNode> Args { get; set; }
+        public List<VarDeclNode> Params { get; set; }
         public List<VarDeclNode> VarDecls { get; set; }
         public AbstractAstNode Stat { get; set; }
     }

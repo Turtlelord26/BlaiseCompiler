@@ -20,7 +20,7 @@ namespace Blaise2.Ast
             {
                 return decls.Select(v => new SymbolInfo { VarType = VarType.Local, VarDecl = v }).FirstOrDefault();
             }
-            var parameters = Args.Where(v => v.Identifier == name);
+            var parameters = Params.Where(v => v.Identifier == name);
             return parameters.Select(v => new SymbolInfo { VarType = VarType.Argument, VarDecl = v }).FirstOrDefault();
         }
     }

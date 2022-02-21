@@ -46,6 +46,10 @@ namespace Blaise2
                 Ast = new AstGenerator().Visit(ParseTree) as ProgramNode;
                 if (Ast == null) { return false; }
 
+                var renderer = new DotRenderer("./expr.dot");
+                renderer.Visualize(Ast);
+                renderer.Close();
+
                 Cil = new CilEmitter().Visit(Ast);
 
                 return true;

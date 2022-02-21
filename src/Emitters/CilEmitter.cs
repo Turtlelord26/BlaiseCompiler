@@ -65,7 +65,7 @@ namespace Blaise2.Emitters
             var output = @$"
     .method public hidebysig 
         instance {returnType} {node.Identifier} (";
-            output += string.Join("", node.Args.Select(p => @$"
+            output += string.Join("", node.Params.Select(p => @$"
             {p.BlaiseType.ToCilType()} {p.Identifier}"));
             output += @"
         ) cil managed
@@ -154,7 +154,7 @@ namespace Blaise2.Emitters
             if (target is FunctionNode)
             {
                 var func = target as FunctionNode;
-                var paramTypes = string.Join(' ', func.Args.Select(p => p.BlaiseType.ToCilType()));
+                var paramTypes = string.Join(' ', func.Params.Select(p => p.BlaiseType.ToCilType()));
                 var argExprs = string.Join('\n', node.Arguments.Select(a => Visit((dynamic)a)).Reverse());
                 return @$"
     ldarg.0
@@ -164,7 +164,7 @@ namespace Blaise2.Emitters
             else
             {
                 var proc = target as FunctionNode;
-                var paramTypes = string.Join(' ', proc.Args.Select(p => p.BlaiseType.ToCilType()));
+                var paramTypes = string.Join(' ', proc.Params.Select(p => p.BlaiseType.ToCilType()));
                 var argExprs = string.Join('\n', node.Arguments.Select(a => Visit((dynamic)a)).Reverse());
                 return @$"
     ldarg.0

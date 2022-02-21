@@ -41,12 +41,11 @@ namespace Blaise2.Ast
                 n.Identifier = v.IDENTIFIER().GetText();
                 n.BlaiseType = BuildBlaiseType(v.typeExpr());
             }));
-
             return Build<FunctionNode>(n =>
             {
                 n.Identifier = context.IDENTIFIER().GetText();
                 n.IsFunction = false;
-                n.Args = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
+                n.Params = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
             });
@@ -59,13 +58,12 @@ namespace Blaise2.Ast
                 n.Identifier = v.IDENTIFIER().GetText();
                 n.BlaiseType = BuildBlaiseType(v.typeExpr());
             }));
-
             return Build<FunctionNode>(n =>
             {
                 n.Identifier = context.IDENTIFIER().GetText();
                 n.IsFunction = true;
                 n.ReturnType = BuildBlaiseType(context.typeExpr());
-                n.Args = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
+                n.Params = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
             });
@@ -102,14 +100,11 @@ namespace Blaise2.Ast
             });
         }
 
-        public override AbstractAstNode VisitAssignment([NotNull] BlaiseParser.AssignmentContext context)
+        public override AbstractAstNode VisitAssignment([NotNull] BlaiseParser.AssignmentContext context) => Build<AssignmentNode>(n =>
         {
-            return Build<AssignmentNode>(n =>
-            {
-                n.Identifier = context.IDENTIFIER().GetText();
-                n.Expression = VisitExpression(context.expression()).WithParent(n);
-            });
-        }
+            n.Identifier = context.IDENTIFIER().GetText();
+            n.Expression = VisitExpression(context.expression()).WithParent(n);
+        });
 
         public override AbstractAstNode VisitProcedureCall([NotNull] BlaiseParser.ProcedureCallContext context) => MakeCallNode(context.call(), false);
 
