@@ -25,7 +25,7 @@ namespace Blaise2
             var compiler = new Compiler();
 
             // set trace: true to turn on parse tracing
-            var success = compiler.Compile(input, trace: true);
+            var success = compiler.Compile(input, trace: false);
 
             if (!success)
             {
