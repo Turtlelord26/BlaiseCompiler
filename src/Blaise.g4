@@ -48,10 +48,10 @@ block
 	)* 'end';
 
 write
-	: 'write' '(' expression ')';
+	: 'write' LPAREN expression RPAREN;
 
 writeln
-	: 'writeln' '(' expression ')';
+	: 'writeln' LPAREN expression RPAREN;
 
 assignment
 	: IDENTIFIER ':=' expression;
@@ -166,8 +166,6 @@ COMP
 	| NE
 	| GTE
 	| LTE;
-POINT
-	: '.';
 POW
 	: '^';
 SEMI

@@ -1,7 +1,6 @@
 using System;
 using Blaise2.Ast;
-using static Blaise2.Ast.BinaryOperator;
-using static Blaise2.Ast.BooleanOperator;
+using static Blaise2.Ast.BlaiseOperator;
 
 namespace Blaise2.Emitters
 {
@@ -32,48 +31,7 @@ namespace Blaise2.Emitters
 ";
         }
 
-        // This function searches up the AST, looking for a node that is
-        // an IVarOwner.  It then asks the IVarOwner if it knows about the
-        // variable in question.  If not, then we continue our search up
-        // the tree.
-        private static SymbolInfo FindVariable(AbstractAstNode curNode, string variableName)
-        {
-            var ptr = curNode;
-
-            while (ptr is not null)
-            {
-                if (ptr is IVarOwner vo)
-                {
-                    var res = vo.GetVarByName(variableName);
-                    if (res is not null)
-                    {
-                        return res;
-                    }
-                }
-                ptr = ptr.Parent;
-            }
-
-            throw new InvalidOperationException($"unknown variable {variableName}");
-        }
-
-        private static AbstractAstNode FindFunction(AbstractAstNode curNode, string funcName)
-        {
-            while (curNode is not null)
-            {
-                if (curNode is FunctionNode)
-                {
-                    var func = curNode as FunctionNode;
-                    if (func.Identifier.Equals(funcName))
-                    {
-                        return func;
-                    }
-                }
-                curNode = curNode.Parent;
-            }
-            throw new InvalidOperationException($"Target not found for function call to {funcName}");
-        }
-
-        private static string ToCilOperator(BinaryOperator op) => op switch
+        private static string ToCilOperator(BlaiseOperator op) => op switch
         {
             Pow => throw new NotImplementedException("Exponentiation unimplemented."),
             Mul => @"
@@ -84,11 +42,6 @@ namespace Blaise2.Emitters
     add",
             Sub => @"
     sub",
-            _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
-        };
-
-        private static string ToCilOperator(BooleanOperator op) => op switch
-        {
             Gt => @"
     cgt",
             Lt => @"
@@ -107,7 +60,7 @@ namespace Blaise2.Emitters
     cgt
     ldc.i4.0
     ceq",
-            _ => throw new InvalidOperationException($"Invalid Boolean Operator {op}")
+            _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
         };
     }
 }

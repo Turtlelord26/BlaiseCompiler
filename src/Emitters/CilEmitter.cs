@@ -8,21 +8,21 @@ using static Blaise2.Ast.VarType;
 namespace Blaise2.Emitters
 {
     [SuppressMessage("Performance", "CA1822", Justification = "all methods must be instance methods to participate in dynamic dispatch")]
-    public partial class CilEmitter : AstVisitorBase<string>
+    public partial class CilEmitter
     {
         private const string nopDelimiter = @"
     nop";
         private string Cil = string.Empty;
         private string ProgramName;
 
-        public override string Visit(ProgramNode node)
+        public string Visit(ProgramNode node)
         {
-            ProgramName = node.ProgramName;
+            ProgramName = node.Identifier;
 
             Cil += Preamble();
 
             Cil += $@"
-.class public auto ansi beforefieldinit {node.ProgramName}
+.class public auto ansi beforefieldinit {node.Identifier}
     extends [System.Private.CoreLib]System.Object
 {{";
             var fields = string.Join('\n', node.VarDecls.OfType<VarDeclNode>().Select(f => $@"
@@ -57,7 +57,7 @@ namespace Blaise2.Emitters
             return Cil;
         }
 
-        public override string Visit(FunctionNode node)
+        public string Visit(FunctionNode node)
         {
 
             var isFunction = node.IsFunction;
@@ -83,9 +83,8 @@ namespace Blaise2.Emitters
                 }
                 foreach (var v in node.VarDecls)
                 {
-                    v.Index = index;
                     output += @$"
-        [{v.Index}] {v.BlaiseType.ToCilType()} {v.Identifier}";
+        [{index}] {v.BlaiseType.ToCilType()} {v.Identifier}";
                     index++;
                 }
                 output += @"
@@ -99,7 +98,6 @@ namespace Blaise2.Emitters
                 {
                     n.Identifier = node.Identifier;
                     n.BlaiseType = node.ReturnType;
-                    n.Index = 0;
                 }));
             }
             //THIS IS WHERE FUNCS AND PROCS WOULD GO
@@ -112,45 +110,37 @@ namespace Blaise2.Emitters
             return output;
         }
 
-        public override string Visit(BlockNode node) => string.Join(nopDelimiter, node.Stats.Select(s => Visit((dynamic)s)));
+        public string Visit(BlockNode node) => string.Join(nopDelimiter, node.Stats.Select(s => Visit((dynamic)s)));
 
-        public override string Visit(WriteNode node)
+        public string Visit(WriteNode node)
         {
-            var output = "\n" + Visit((dynamic)node.Expression);
-            //Need to pull type information from the child node to pass to WriteLine for more general use.
-            if (node.WriteNewline)
-            {
-                output += @"
-    call void [System.Console]System.Console::WriteLine(int32)";
-            }
-            else
-            {
-                output += @"
-    call void [System.Console]System.Console::Write(int32)";
-            }
-            return output;
+            var exprType = (node.Expression as ITypedNode).GetExprType().ToCilType();
+            var method = node.WriteNewline ? "WriteLine" : "Write";
+            return @$"
+    {Visit((dynamic)node.Expression)}
+    call void [System.Console]System.Console::{method}({exprType})";
         }
 
-        public override string Visit(AssignmentNode node)
+        public string Visit(AssignmentNode node)
         {
-            var info = FindVariable(node, node.Identifier);
+            var info = node.VarInfo ?? throw new InvalidOperationException($"Couldn't resolve variable {node.Identifier}.");
             return info.VarType switch
             {
                 Global => @$"
     ldloc.0{Visit((dynamic)node.Expression)}
     stfld {info.VarDecl.BlaiseType.ToCilType()} {ProgramName}::{info.VarDecl.Identifier}",
                 Local => @$"{Visit((dynamic)node.Expression)}
-    stloc.{info.VarDecl.Index}",
+    stloc {info.VarDecl.Identifier}",
                 Argument => @$"{Visit((dynamic)node.Expression)}
     starg.s {info.VarDecl.Identifier}",
                 _ => throw new InvalidOperationException($"Invalid VarType {info.VarType}")
             };
         }
 
-        public override string Visit(FunctionCallNode node)
+        public string Visit(FunctionCallNode node)
         {
             //Put Call target on node later? Need to calc it during semantic analysis anyway.
-            var target = FindFunction(node, node.Identifier);
+            var target = node.CallTarget;
             if (target is FunctionNode)
             {
                 var func = target as FunctionNode;
@@ -173,33 +163,33 @@ namespace Blaise2.Emitters
             }
         }
 
-        public override string Visit(IntegerNode node) => @$"
+        public string Visit(IntegerNode node) => @$"
     ldc.i4.s {node.IntValue}";
 
-        public override string Visit(RealNode node) => @$"
+        public string Visit(RealNode node) => @$"
     ldc.r4 {node.RealValue}";
 
-        public override string Visit(StringNode node) => @$"
+        public string Visit(StringNode node) => @$"
     ldstr {node.StringValue}";
 
-        public override string Visit(VarRefNode node)
+        public string Visit(VarRefNode node)
         {
-            var info = FindVariable(node, node.Identifier);
+            var info = node.VarInfo ?? throw new InvalidOperationException($"Couldn't resolve variable {node.Identifier}.");
             return info.VarType switch
             {
                 Global => @$"
     ldloc.0
     ldfld {info.VarDecl.BlaiseType.ToCilType()} {ProgramName}::{info.VarDecl.Identifier}",
                 Local => @$"
-    ldloc.{info.VarDecl.Index}",
+    ldloc {info.VarDecl.Identifier}",
                 Argument => @$"
-    ldarg.{info.VarDecl.Index}",
+    ldarg {info.VarDecl.Identifier}",
                 _ => throw new InvalidOperationException($"Invalid VarType {info.VarType}")
             };
         }
 
-        public override string Visit(BinaryOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
+        public string Visit(BinaryOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
 
-        public override string Visit(BooleanOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
+        public string Visit(BooleanOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
     }
 }

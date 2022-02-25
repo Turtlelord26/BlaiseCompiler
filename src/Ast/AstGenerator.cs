@@ -17,7 +17,7 @@ namespace Blaise2.Ast
             var routines = context.routines();
             return Build<ProgramNode>(n =>
             {
-                n.ProgramName = context.programDecl().IDENTIFIER().GetText();
+                n.Identifier = context.programDecl().IDENTIFIER().GetText();
                 n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList()
                             ?? new List<VarDeclNode>();
                 n.Procedures = routines?._procs.Select(p => VisitProcedure(p).WithParent(n)).OfType<FunctionNode>().ToList()
@@ -83,16 +83,14 @@ namespace Blaise2.Ast
 
         public override AbstractAstNode VisitBlock([NotNull] BlaiseParser.BlockContext context)
         {
-            var statnodes = context._st.Select(s => VisitStat(s)).OfType<AbstractAstNode>().ToList()
-                            ?? new List<AbstractAstNode>();
-            int statCount = statnodes.Count;
+            int statCount = context._st.Count;
             if (statCount == 0)
             {
                 return AbstractAstNode.Empty;
             }
             if (statCount == 1)
             {
-                return statnodes[0];
+                return VisitStat(context._st[0]);
             }
             return Build<BlockNode>(n =>
             {
@@ -115,38 +113,38 @@ namespace Blaise2.Ast
             n.Identifier = context.IDENTIFIER().GetText();
             n.IsFunction = isFunction;
             n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).ToList()
-                                    ?? new List<AbstractAstNode>();
+                          ?? new List<AbstractAstNode>();
         });
 
         public override AbstractAstNode VisitExpression([NotNull] BlaiseParser.ExpressionContext context)
         {
-            if (context.binop != null)
+            if (context.binop is not null)
             {
                 return Build<BinaryOpNode>(n =>
                 {
                     n.Left = VisitExpression(context.left).WithParent(n);
                     n.Right = VisitExpression(context.right).WithParent(n);
-                    n.Operator = GetBinaryOperator(context.binop.Text);
+                    n.Operator = OpMap[context.binop.Text];
                 });
             }
-            else if (context.boolop != null)
+            else if (context.boolop is not null)
             {
                 return Build<BooleanOpNode>(n =>
                 {
                     n.Left = VisitExpression(context.left).WithParent(n);
                     n.Right = VisitExpression(context.right).WithParent(n);
-                    n.Operator = GetBooleanOperator(context.binop.Text);
+                    n.Operator = OpMap[context.binop.Text];
                 });
             }
-            else if (context.inner != null)
+            else if (context.inner is not null)
             {
                 return VisitExpression(context.inner);
             }
-            else if (context.functionCall() != null)
+            else if (context.functionCall() is not null)
             {
                 return VisitFunctionCall(context.functionCall());
             }
-            else if (context.numericAtom() != null)
+            else if (context.numericAtom() is not null)
             {
                 return VisitNumericAtom(context.numericAtom());
             }
@@ -162,11 +160,11 @@ namespace Blaise2.Ast
 
         public override AbstractAstNode VisitNumericAtom([NotNull] BlaiseParser.NumericAtomContext context)
         {
-            if (context.INTEGER() != null)
+            if (context.INTEGER() is not null)
             {
                 return Build<IntegerNode>(n => { n.IntValue = int.Parse(context.INTEGER().GetText()); });
             }
-            else if (context.REAL() != null)
+            else if (context.REAL() is not null)
             {
                 return Build<RealNode>(n => { n.RealValue = double.Parse(context.REAL().GetText()); });
             }
@@ -178,7 +176,7 @@ namespace Blaise2.Ast
 
         public override AbstractAstNode VisitAtom([NotNull] BlaiseParser.AtomContext context)
         {
-            if (context.IDENTIFIER() != null)
+            if (context.IDENTIFIER() is not null)
             {
                 return Build<VarRefNode>(n =>
                 {
@@ -196,14 +194,14 @@ namespace Blaise2.Ast
             {
                 return Build<CharNode>(n =>
                 {
-                    n.CharValue = context.CHAR().GetText()[0];
+                    n.CharValue = context.CHAR().GetText()[1];
                 });
             }
-            else if (context.STRING() != null)
+            else if (context.STRING() is not null)
             {
                 return Build<StringNode>(n =>
                 {
-                    n.StringValue = context.STRING().GetText();
+                    n.StringValue = context.STRING().GetText()[1..^1];
                 });
             }
             else

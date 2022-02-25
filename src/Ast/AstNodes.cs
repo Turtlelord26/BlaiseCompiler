@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
 {
@@ -16,7 +17,7 @@ namespace Blaise2.Ast
 
     public partial class ProgramNode : AbstractAstNode, IVarOwner
     {
-        public string ProgramName { get; set; }
+        public string Identifier { get; set; }
         public List<VarDeclNode> VarDecls { get; set; }
         public List<FunctionNode> Procedures { get; set; }
         public List<FunctionNode> Functions { get; set; }
@@ -28,39 +29,19 @@ namespace Blaise2.Ast
         public string Identifier { get; set; }
 
         public BlaiseType BlaiseType { get; set; }
-
-        public int Index { get; set; } = -1;
     }
 
-    // file NT only references program, so no node
-
-    // ProgramNode subsumes programDecl
-
-    // ProgramNode subsumes varBlock
-
-    // ProgramNode subsumes routines
-
-    public partial class FunctionNode : AbstractAstNode, IVarOwner
+    public partial class FunctionNode : ProgramNode
     {
-        public string Identifier { get; set; }
         public bool IsFunction { get; set; }
         public BlaiseType ReturnType { get; set; }
-        // using VarDeclNode to store argument info, not to be a node in the AST
         public List<VarDeclNode> Params { get; set; }
-        public List<VarDeclNode> VarDecls { get; set; }
-        public AbstractAstNode Stat { get; set; }
     }
-
-    // BlaiseType objects mean we don't need the typeExpr tree
-
-    // stat is not needed as we'll just use the different statement nodes
 
     public class BlockNode : AbstractAstNode
     {
         public List<AbstractAstNode> Stats { get; set; }
     }
-
-    // writeln is just a special case of write
 
     public class WriteNode : AbstractAstNode
     {
@@ -72,62 +53,96 @@ namespace Blaise2.Ast
     {
         public string Identifier { get; set; }
         public AbstractAstNode Expression { get; set; }
+        public SymbolInfo VarInfo { get; set; }
     }
 
-    // argsList is subsumed by ProcedureNode and FunctionNode
-
-    // RealNode and IntegerNode will be used directly instead of numericAtom
-
-    public class FunctionCallNode : AbstractAstNode
+    public class FunctionCallNode : AbstractAstNode, ITypedNode
     {
         public string Identifier { get; set; }
         public bool IsFunction { get; set; }
         public List<AbstractAstNode> Arguments { get; set; }
+        public FunctionNode CallTarget { get; set; }
+
+        public BlaiseType GetExprType() => CallTarget.ReturnType;
     }
 
-    // expression is not needed as we'll just use the individual alts' nodes
-
-    public class IntegerNode : AbstractAstNode
+    public class IntegerNode : AbstractAstNode, ITypedNode
     {
         public int IntValue { get; set; }
+
+        public BlaiseType GetExprType() => new()
+        {
+            BasicType = INTEGER
+        };
     }
 
-    public class RealNode : AbstractAstNode
+    public class RealNode : AbstractAstNode, ITypedNode
     {
         public double RealValue { get; set; }
+
+        public BlaiseType GetExprType() => new()
+        {
+            BasicType = REAL
+        };
     }
 
-    public class VarRefNode : AbstractAstNode
+    public class VarRefNode : AbstractAstNode, ITypedNode
     {
         public string Identifier { get; set; }
+        public SymbolInfo VarInfo { get; set; }
+
+        public BlaiseType GetExprType() => VarInfo.VarDecl.BlaiseType;
     }
 
-    public class BooleanNode : AbstractAstNode
+    public class BooleanNode : AbstractAstNode, ITypedNode
     {
         public bool BoolValue { get; set; }
+
+        public BlaiseType GetExprType() => new()
+        {
+            BasicType = BOOLEAN
+        };
     }
 
-    public class CharNode : AbstractAstNode
+    public class CharNode : AbstractAstNode, ITypedNode
     {
         public char CharValue { get; set; }
+
+        public BlaiseType GetExprType() => new()
+        {
+            BasicType = CHAR
+        };
     }
 
-    public class StringNode : AbstractAstNode
+    public class StringNode : AbstractAstNode, ITypedNode
     {
         public string StringValue { get; set; }
+
+        public BlaiseType GetExprType() => new()
+        {
+            BasicType = STRING
+        };
     }
 
-    public class BinaryOpNode : AbstractAstNode
+    public class BinaryOpNode : AbstractAstNode, ITypedNode
     {
         public AbstractAstNode Left { get; set; }
         public AbstractAstNode Right { get; set; }
-        public BinaryOperator Operator { get; set; }
+        public BlaiseOperator Operator { get; set; }
+        public BlaiseType ExprType { get; set; }
+
+        public BlaiseType GetExprType() => ExprType;
     }
 
-    public class BooleanOpNode : AbstractAstNode
+    public class BooleanOpNode : AbstractAstNode, ITypedNode
     {
         public AbstractAstNode Left { get; set; }
         public AbstractAstNode Right { get; set; }
-        public BooleanOperator Operator { get; set; }
+        public BlaiseOperator Operator { get; set; }
+
+        public BlaiseType GetExprType() => new()
+        {
+            BasicType = BOOLEAN
+        };
     }
 }

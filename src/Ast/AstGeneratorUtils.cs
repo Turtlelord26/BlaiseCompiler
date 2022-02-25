@@ -1,22 +1,41 @@
 using System;
-using static Blaise2.Ast.BinaryOperator;
-using static Blaise2.Ast.BooleanOperator;
+using System.Collections.Generic;
+using static Blaise2.Ast.BlaiseOperator;
+using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
 {
     public partial class AstGenerator : BlaiseBaseVisitor<AbstractAstNode>
     {
+        public static Dictionary<string, BlaiseOperator> OpMap = new()
+        {
+            { "^", Pow },
+            { "*", Mul },
+            { "/", Div },
+            { "+", Add },
+            { "-", Sub },
+            { "<", Lt },
+            { "<=", Lte },
+            { ">", Gt },
+            { ">=", Gte },
+            { "=", Eq },
+            { "<>", Ne }
+            //{ "and", And },
+            //{ "or", Or },
+            //{ "not", Not }
+        };
+
         private static BlaiseTypeEnum GetBasicBlaiseType(string t)
         {
             return t switch
             {
-                "string" => BlaiseTypeEnum.STRING,
-                "integer" => BlaiseTypeEnum.INTEGER,
-                "real" => BlaiseTypeEnum.REAL,
-                "boolean" => BlaiseTypeEnum.BOOLEAN,
-                "char" => BlaiseTypeEnum.CHAR,
-                "array" => BlaiseTypeEnum.ARRAY,
-                "set" => BlaiseTypeEnum.SET,
+                "string" => STRING,
+                "integer" => INTEGER,
+                "real" => REAL,
+                "boolean" => BOOLEAN,
+                "char" => CHAR,
+                "array" => ARRAY,
+                "set" => SET,
                 _ => throw new InvalidOperationException($"Unknown Blaise type {t}"),
             };
         }
@@ -32,39 +51,18 @@ namespace Blaise2.Ast
             else if (context.arrayTypeExpr() != null)
             {
                 var ate = context.arrayTypeExpr();
-                btype.BasicType = BlaiseTypeEnum.ARRAY;
+                btype.BasicType = ARRAY;
                 btype.StartIndex = int.Parse(ate.startIndex.Text);
                 btype.EndIndex = int.Parse(ate.endIndex.Text);
                 btype.ExtendedType = GetBasicBlaiseType(context.arrayTypeExpr().simpleTypeExpr().GetText());
             }
             else if (context.setTypeExpr() != null)
             {
-                btype.BasicType = BlaiseTypeEnum.SET;
+                btype.BasicType = SET;
                 btype.ExtendedType = GetBasicBlaiseType(context.setTypeExpr().simpleTypeExpr().GetText());
             }
 
             return btype;
         }
-
-        private static BinaryOperator GetBinaryOperator(string op) => op switch
-        {
-            "^" => Pow,
-            "*" => Mul,
-            "/" => Div,
-            "+" => Add,
-            "-" => Sub,
-            _ => throw new InvalidOperationException($"Invalid Binary Operator String {op}.")
-        };
-
-        private static BooleanOperator GetBooleanOperator(string op) => op switch
-        {
-            ">" => Gt,
-            "<" => Lt,
-            "=" => Eq,
-            "<>" => Ne,
-            ">=" => Gte,
-            "<=" => Lte,
-            _ => throw new InvalidOperationException($"Invalid Boolean Operator String {op}.")
-        };
     }
 }

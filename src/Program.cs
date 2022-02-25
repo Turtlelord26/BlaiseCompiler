@@ -9,7 +9,7 @@ namespace Blaise2
             Try(@"
                 program Printing;
 
-                var x : integer;
+                var a : integer;
 
                 begin
                     x := 12;
@@ -25,7 +25,7 @@ namespace Blaise2
             var compiler = new Compiler();
 
             // set trace: true to turn on parse tracing
-            var success = compiler.Compile(input, trace: false);
+            var success = compiler.Compile(input, trace: true);
 
             if (!success)
             {

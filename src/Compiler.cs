@@ -46,9 +46,14 @@ namespace Blaise2
                 Ast = new AstGenerator().Visit(ParseTree) as ProgramNode;
                 if (Ast == null) { return false; }
 
+                var valid = AstEvaluator.EvaluateAst(Ast);
+
                 var renderer = new DotRenderer("./expr.dot");
                 renderer.Visualize(Ast);
                 renderer.Close();
+
+                //if (!valid) { return false; }
+                //Test cases want the poor emitter to crash and burn
 
                 Cil = new CilEmitter().Visit(Ast);
 

@@ -2,8 +2,8 @@ namespace Blaise2.Ast
 {
     public enum BlaiseTypeEnum
     {
-        CHAR,
         BOOLEAN,
+        CHAR,
         INTEGER,
         REAL,
         STRING,

@@ -30,7 +30,7 @@ namespace Blaise2
         private void Treewalk(ProgramNode node, string parent)
         {
             var dot = MakeDotNode();
-            outStream.WriteLine($"  {dot} [shape=\"rect\" label=\"Program\n{node.ProgramName}\"]");
+            outStream.WriteLine($"  {dot} [shape=\"rect\" label=\"Program\n{node.Identifier}\"]");
             foreach (var decl in node.VarDecls)
             {
                 Treewalk((dynamic)decl, dot);
