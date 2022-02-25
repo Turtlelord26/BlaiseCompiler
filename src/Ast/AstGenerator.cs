@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Antlr4.Runtime.Misc;
 using static Blaise2.Ast.AstNodeExtensions;
+using static Blaise2.Ast.LoopType;
 
 namespace Blaise2.Ast
 {
@@ -102,6 +103,56 @@ namespace Blaise2.Ast
         {
             n.Identifier = context.IDENTIFIER().GetText();
             n.Expression = VisitExpression(context.expression()).WithParent(n);
+        });
+
+        public override AbstractAstNode VisitLoop([Antlr4.Runtime.Misc.NotNull] BlaiseParser.LoopContext context)
+        {
+            if (context.whileDo() is not null)
+            {
+                return VisitWhileDo(context.whileDo());
+            }
+            else if (context.forDo() is not null)
+            {
+                return VisitForDo(context.forDo());
+            }
+            else if (context.repeatUntil() is not null)
+            {
+                return VisitRepeatUntil(context.repeatUntil());
+            }
+            else
+            {
+                throw new InvalidOperationException($"Invalid Loop {context.GetText()}");
+            }
+        }
+
+        public override AbstractAstNode VisitWhileDo([NotNull] BlaiseParser.WhileDoContext context) => Build<LoopNode>(n =>
+        {
+            n.LoopType = While;
+            n.Assignment = AbstractAstNode.Empty;
+            n.Condition = VisitExpression(context.condition).WithParent(n);
+            n.Body = VisitStat(context.st).WithParent(n);
+        });
+
+        public override AbstractAstNode VisitForDo([NotNull] BlaiseParser.ForDoContext context) => Build<LoopNode>(n =>
+        {
+            n.LoopType = For;
+            n.Assignment = VisitAssignment(context.init).WithParent(n);
+            n.Down = context.down is not null;
+            n.Condition = VisitExpression(context.limit).WithParent(n);
+            n.Body = VisitStat(context.st).WithParent(n);
+        });
+
+        public override AbstractAstNode VisitRepeatUntil([NotNull] BlaiseParser.RepeatUntilContext context) => Build<LoopNode>(n =>
+        {
+            n.LoopType = Until;
+            n.Assignment = AbstractAstNode.Empty;
+            n.Condition = VisitExpression(context.condition).WithParent(n);
+            n.Body = context._st.Count > 1
+            ? Build<BlockNode>(b =>
+                {
+                    b.Stats = context._st.Select(s => VisitStat(s).WithParent(b)).ToList();
+                }).WithParent(n)
+            : VisitStat(context._st[0]).WithParent(n);
         });
 
         public override AbstractAstNode VisitProcedureCall([NotNull] BlaiseParser.ProcedureCallContext context) => MakeCallNode(context.call(), false);

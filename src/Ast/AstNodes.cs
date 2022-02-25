@@ -56,6 +56,37 @@ namespace Blaise2.Ast
         public SymbolInfo VarInfo { get; set; }
     }
 
+    public class LoopNode : AbstractAstNode
+    {
+        public LoopType LoopType { get; set; }
+        public AbstractAstNode Assignment { get; set; }
+        public bool Down { get; set; }
+        public AbstractAstNode Condition { get; set; }
+        public AbstractAstNode Body { get; set; }
+    }
+
+    public class BinaryOpNode : AbstractAstNode, ITypedNode
+    {
+        public AbstractAstNode Left { get; set; }
+        public AbstractAstNode Right { get; set; }
+        public BlaiseOperator Operator { get; set; }
+        public BlaiseType ExprType { get; set; }
+
+        public BlaiseType GetExprType() => ExprType;
+    }
+
+    public class BooleanOpNode : AbstractAstNode, ITypedNode
+    {
+        public AbstractAstNode Left { get; set; }
+        public AbstractAstNode Right { get; set; }
+        public BlaiseOperator Operator { get; set; }
+
+        public BlaiseType GetExprType() => new()
+        {
+            BasicType = BOOLEAN
+        };
+    }
+
     public class FunctionCallNode : AbstractAstNode, ITypedNode
     {
         public string Identifier { get; set; }
@@ -121,28 +152,6 @@ namespace Blaise2.Ast
         public BlaiseType GetExprType() => new()
         {
             BasicType = STRING
-        };
-    }
-
-    public class BinaryOpNode : AbstractAstNode, ITypedNode
-    {
-        public AbstractAstNode Left { get; set; }
-        public AbstractAstNode Right { get; set; }
-        public BlaiseOperator Operator { get; set; }
-        public BlaiseType ExprType { get; set; }
-
-        public BlaiseType GetExprType() => ExprType;
-    }
-
-    public class BooleanOpNode : AbstractAstNode, ITypedNode
-    {
-        public AbstractAstNode Left { get; set; }
-        public AbstractAstNode Right { get; set; }
-        public BlaiseOperator Operator { get; set; }
-
-        public BlaiseType GetExprType() => new()
-        {
-            BasicType = BOOLEAN
         };
     }
 }
