@@ -9,11 +9,21 @@ namespace Blaise2
             Try(@"
                 program Printing;
 
-                var a : integer;
+                var x : integer;
+                    sqrt5 : real;
+                    a : real;
+                    b : real;
 
                 begin
-                    x := 12;
-                    writeln( 4 * x + 3 );
+                    sqrt5 := 5 ^ 0.5;
+                    a := (1 + sqrt5) / 2.0;
+                    b := (1 - sqrt5) / 2.0;
+                    x := 1;
+                    while x < 10 do
+                    begin
+                        writeln((a ^ x - b ^ x) / sqrt5);
+                        x := x + 1;
+                    end;
                 end.
             ");
         }

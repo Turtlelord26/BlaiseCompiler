@@ -40,6 +40,7 @@ stat
 	| write
 	| writeln
 	| procedureCall
+	| loop
 	| block;
 
 block
@@ -72,6 +73,22 @@ paramsList
 	: var += varDecl (
 		SEMI var += varDecl
 	)*;
+
+loop
+	: whileDo
+	| forDo
+	| repeatUntil;
+
+whileDo
+	: 'while' condition = expression 'do' st = stat SEMI;
+
+forDo
+	: 'for' init = assignment down = 'down'? 'to' limit = expression 'do' st = stat SEMI;
+
+repeatUntil
+	: 'repeat' (
+		st += stat SEMI
+	)+ 'until' condition = expression;
 
 expression
 	: left = expression binop = POW right = expression
