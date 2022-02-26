@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
@@ -64,6 +65,11 @@ namespace Blaise2.Ast
             valid = valid & Evaluate((dynamic)node.Stat);
             return valid;
         }
+
+        private static bool Evaluate(LoopNode node) => Evaluate((dynamic)node.Assignment)
+                                                     & Evaluate((dynamic)node.Condition)
+                                                     & (node.Condition as ITypedNode).GetExprType().BasicType == BOOLEAN
+                                                     & Evaluate((dynamic)node.Body);
 
         private static bool Evaluate(BinaryOpNode node)
         {

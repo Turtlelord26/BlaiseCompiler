@@ -137,6 +137,11 @@ namespace Blaise2.Emitters
             };
         }
 
+        public string Visit(LoopNode node)
+        {
+            throw new NotImplementedException();
+        }
+
         public string Visit(FunctionCallNode node)
         {
             //Put Call target on node later? Need to calc it during semantic analysis anyway.
