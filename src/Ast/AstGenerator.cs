@@ -82,22 +82,8 @@ namespace Blaise2.Ast
             n.Expression = VisitExpression(context.expression()).WithParent(n);
         });
 
-        public override AbstractAstNode VisitBlock([NotNull] BlaiseParser.BlockContext context)
-        {
-            int statCount = context._st.Count;
-            if (statCount == 0)
-            {
-                return AbstractAstNode.Empty;
-            }
-            if (statCount == 1)
-            {
-                return VisitStat(context._st[0]);
-            }
-            return Build<BlockNode>(n =>
-            {
-                n.Stats = context._st.Select(s => VisitStat(s).WithParent(n)).ToList();
-            });
-        }
+        public override AbstractAstNode VisitBlock([NotNull] BlaiseParser.BlockContext context) => MakeBlock(context._st);
+
 
         public override AbstractAstNode VisitAssignment([NotNull] BlaiseParser.AssignmentContext context) => Build<AssignmentNode>(n =>
         {
@@ -147,25 +133,12 @@ namespace Blaise2.Ast
             n.LoopType = Until;
             n.Assignment = AbstractAstNode.Empty;
             n.Condition = VisitExpression(context.condition).WithParent(n);
-            n.Body = context._st.Count > 1
-            ? Build<BlockNode>(b =>
-                {
-                    b.Stats = context._st.Select(s => VisitStat(s).WithParent(b)).ToList();
-                }).WithParent(n)
-            : VisitStat(context._st[0]).WithParent(n);
+            n.Body = MakeBlock(context._st).WithParent(n);
         });
 
         public override AbstractAstNode VisitProcedureCall([NotNull] BlaiseParser.ProcedureCallContext context) => MakeCallNode(context.call(), false);
 
         public override AbstractAstNode VisitFunctionCall([NotNull] BlaiseParser.FunctionCallContext context) => MakeCallNode(context.call(), true);
-
-        private AbstractAstNode MakeCallNode([NotNull] BlaiseParser.CallContext context, bool isFunction) => Build<FunctionCallNode>(n =>
-        {
-            n.Identifier = context.IDENTIFIER().GetText();
-            n.IsFunction = isFunction;
-            n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).ToList()
-                          ?? new List<AbstractAstNode>();
-        });
 
         public override AbstractAstNode VisitExpression([NotNull] BlaiseParser.ExpressionContext context)
         {
@@ -260,5 +233,30 @@ namespace Blaise2.Ast
                 throw new InvalidOperationException($"Invalid Char Atom {context.GetText()}");
             }
         }
+
+        private AbstractAstNode MakeBlock([NotNull] IList<BlaiseParser.StatContext> stats)
+        {
+            int statCount = stats.Count;
+            if (statCount == 0)
+            {
+                return AbstractAstNode.Empty;
+            }
+            if (statCount == 1)
+            {
+                return VisitStat(stats[0]);
+            }
+            return Build<BlockNode>(n =>
+            {
+                n.Stats = stats.Select(s => VisitStat(s).WithParent(n)).ToList();
+            });
+        }
+
+        private AbstractAstNode MakeCallNode([NotNull] BlaiseParser.CallContext context, bool isFunction) => Build<FunctionCallNode>(n =>
+        {
+            n.Identifier = context.IDENTIFIER().GetText();
+            n.IsFunction = isFunction;
+            n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).ToList()
+                          ?? new List<AbstractAstNode>();
+        });
     }
 }
