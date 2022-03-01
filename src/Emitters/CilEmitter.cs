@@ -240,20 +240,35 @@ namespace Blaise2.Emitters
 
         public string Visit(BinaryOpNode node)
         {
-            var output = $"{Visit((dynamic)node.Left)}";
+            var output = Visit((dynamic)node.Left);
             if (!node.LeftType.Equals(node.ExprType))
             {
                 output += TypeConvert(node.LeftType, node.ExprType);
             }
-            output += $"{Visit((dynamic)node.Right)}";
+            output += Visit((dynamic)node.Right);
             if (!node.RightType.Equals(node.ExprType))
             {
                 output += TypeConvert(node.RightType, node.ExprType);
             }
-            return output + $"{ToCilOperator(node.Operator)}";
+            return output + ToCilOperator(node.Operator);
         }
 
-        public string Visit(BooleanOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
+        public string Visit(BooleanOpNode node)
+        {
+            var leftBasicType = node.LeftType.BasicType;
+            var rightBasicType = node.RightType.BasicType;
+            var output = Visit((dynamic)node.Left);
+            if (leftBasicType < rightBasicType & !node.LeftType.Equals(node.RightType))
+            {
+                output += TypeConvert(node.LeftType, node.RightType);
+            }
+            output += Visit((dynamic)node.Right);
+            if (leftBasicType > rightBasicType & !node.LeftType.Equals(node.RightType))
+            {
+                output += TypeConvert(node.RightType, node.LeftType);
+            }
+            return output + ToCilOperator(node.Operator);
+        }
 
         public string Visit(AbstractAstNode node) => node.IsEmpty() ? "" : throw new InvalidOperationException($"Invalid node type {node.Type}");
 

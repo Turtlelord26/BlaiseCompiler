@@ -22,9 +22,9 @@ namespace Blaise2.Ast
 
         public static BlaiseType ResolveType(BooleanOpNode node)
         {
-            var leftType = ResolveType((dynamic)node.Left);
-            var rightType = ResolveType((dynamic)node.Right);
-            return ValidateBooleanOp(leftType, rightType);
+            node.LeftType = ResolveType((dynamic)node.Left);
+            node.RightType = ResolveType((dynamic)node.Right);
+            return ValidateBooleanOp(node.LeftType, node.RightType);
         }
 
         public static BlaiseType ResolveType(FunctionCallNode node) => node.CallTarget.ReturnType;
