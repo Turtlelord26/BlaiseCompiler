@@ -59,27 +59,35 @@ namespace Blaise2.Ast
     public class LoopNode : AbstractAstNode
     {
         public LoopType LoopType { get; set; }
-        public AbstractAstNode Assignment { get; set; }
-        public bool Down { get; set; }
         public AbstractAstNode Condition { get; set; }
         public AbstractAstNode Body { get; set; }
     }
 
+    public partial class ForLoopNode : LoopNode
+    {
+        public AssignmentNode Assignment { get; set; }
+        public AssignmentNode Iteration { get; set; }
+    }
+
     public class BinaryOpNode : AbstractAstNode, ITypedNode
     {
-        public AbstractAstNode Left { get; set; }
-        public AbstractAstNode Right { get; set; }
+        public ITypedNode Left { get; set; }
+        public ITypedNode Right { get; set; }
         public BlaiseOperator Operator { get; set; }
         public BlaiseType ExprType { get; set; }
+        public BlaiseType LeftType { get; set; }
+        public BlaiseType RightType { get; set; }
 
         public BlaiseType GetExprType() => ExprType;
     }
 
     public class BooleanOpNode : AbstractAstNode, ITypedNode
     {
-        public AbstractAstNode Left { get; set; }
-        public AbstractAstNode Right { get; set; }
+        public ITypedNode Left { get; set; }
+        public ITypedNode Right { get; set; }
         public BlaiseOperator Operator { get; set; }
+        public BlaiseType LeftType { get; set; }
+        public BlaiseType RightType { get; set; }
 
         public BlaiseType GetExprType() => new()
         {
@@ -91,7 +99,7 @@ namespace Blaise2.Ast
     {
         public string Identifier { get; set; }
         public bool IsFunction { get; set; }
-        public List<AbstractAstNode> Arguments { get; set; }
+        public List<ITypedNode> Arguments { get; set; }
         public FunctionNode CallTarget { get; set; }
 
         public BlaiseType GetExprType() => CallTarget.ReturnType;
@@ -122,7 +130,7 @@ namespace Blaise2.Ast
         public string Identifier { get; set; }
         public SymbolInfo VarInfo { get; set; }
 
-        public BlaiseType GetExprType() => VarInfo.VarDecl.BlaiseType;
+        public BlaiseType GetExprType() => VarInfo?.VarDecl.BlaiseType ?? BlaiseType.ErrorType;
     }
 
     public class BooleanNode : AbstractAstNode, ITypedNode

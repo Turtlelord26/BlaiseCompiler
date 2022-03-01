@@ -1,32 +1,127 @@
 digraph Expr {
   node0 [shape="rect" label="Program
-Printing"]
+ConstantFib"]
   node1 [label="VarDecl
 x : integer"]
   node0 -> node1;
-  node2 [shape="rect" label="Block"]
+  node2 [label="VarDecl
+sqrt5 : real"]
   node0 -> node2;
-  node3 [shape="rect" label="Assignment
-x"]
-  node2 -> node3;
-  node4 [label="Int
-12"]
-  node3 -> node4;
-  node5 [shape="rect" label="WriteLn"]
-  node2 -> node5;
-  node6 [shape="rect" label="BinaryOperator
-Add"]
+  node3 [label="VarDecl
+a : real"]
+  node0 -> node3;
+  node4 [label="VarDecl
+b : real"]
+  node0 -> node4;
+  node5 [shape="rect" label="Block"]
+  node0 -> node5;
+  node6 [shape="rect" label="Assignment
+sqrt5"]
   node5 -> node6;
   node7 [shape="rect" label="BinaryOperator
-Mul"]
+Pow"]
   node6 -> node7;
   node8 [label="Int
-4"]
+5"]
   node7 -> node8;
-  node9 [label="Identifier
-x"]
+  node9 [label="Real
+0.5"]
   node7 -> node9;
-  node10 [label="Int
-3"]
-  node6 -> node10;
+  node10 [shape="rect" label="Assignment
+a"]
+  node5 -> node10;
+  node11 [shape="rect" label="BinaryOperator
+Div"]
+  node10 -> node11;
+  node12 [shape="rect" label="BinaryOperator
+Add"]
+  node11 -> node12;
+  node13 [label="Int
+1"]
+  node12 -> node13;
+  node14 [label="Identifier
+sqrt5"]
+  node12 -> node14;
+  node15 [label="Real
+2"]
+  node11 -> node15;
+  node16 [shape="rect" label="Assignment
+b"]
+  node5 -> node16;
+  node17 [shape="rect" label="BinaryOperator
+Div"]
+  node16 -> node17;
+  node18 [shape="rect" label="BinaryOperator
+Sub"]
+  node17 -> node18;
+  node19 [label="Int
+1"]
+  node18 -> node19;
+  node20 [label="Identifier
+sqrt5"]
+  node18 -> node20;
+  node21 [label="Real
+2"]
+  node17 -> node21;
+  node22 [shape="rect" label="Loop
+For"]
+  node5 -> node22;
+  node23 [shape="rect" label="Assignment
+x"]
+  node22 -> node23;
+  node24 [label="Int
+1"]
+  node23 -> node24;
+  node25 [shape="rect" label="BooleanOperator
+Lt"]
+  node22 -> node25;
+  node26 [label="Identifier
+x"]
+  node25 -> node26;
+  node27 [label="Int
+10"]
+  node25 -> node27;
+  node28 [shape="rect" label="Block"]
+  node22 -> node28;
+  node29 [shape="rect" label="WriteLn"]
+  node28 -> node29;
+  node30 [shape="rect" label="BinaryOperator
+Div"]
+  node29 -> node30;
+  node31 [shape="rect" label="BinaryOperator
+Sub"]
+  node30 -> node31;
+  node32 [shape="rect" label="BinaryOperator
+Pow"]
+  node31 -> node32;
+  node33 [label="Identifier
+a"]
+  node32 -> node33;
+  node34 [label="Identifier
+x"]
+  node32 -> node34;
+  node35 [shape="rect" label="BinaryOperator
+Pow"]
+  node31 -> node35;
+  node36 [label="Identifier
+b"]
+  node35 -> node36;
+  node37 [label="Identifier
+x"]
+  node35 -> node37;
+  node38 [label="Identifier
+sqrt5"]
+  node30 -> node38;
+  node39 [shape="rect" label="Assignment
+x"]
+  node28 -> node39;
+  node40 [shape="rect" label="BinaryOperator
+Add"]
+  node39 -> node40;
+  node41 [label="Identifier
+x"]
+  node40 -> node41;
+  node42 [label="Int
+1"]
+  node40 -> node42;
 }

@@ -1,6 +1,7 @@
 using System;
 using Blaise2.Ast;
 using static Blaise2.Ast.BlaiseOperator;
+using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Emitters
 {
@@ -33,7 +34,8 @@ namespace Blaise2.Emitters
 
         private static string ToCilOperator(BlaiseOperator op) => op switch
         {
-            Pow => throw new NotImplementedException("Exponentiation unimplemented."),
+            Pow => @"
+    call float64 [System.Private.CoreLib]System.Math::Pow(float64, float64)",
             Mul => @"
     mul",
             Div => @"
@@ -62,5 +64,29 @@ namespace Blaise2.Emitters
     ceq",
             _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
         };
+
+        private static string TypeConvert(BlaiseType currentType, BlaiseType targetType)
+        {
+            var current = currentType.BasicType;
+            var target = targetType.BasicType;
+            if (target == REAL & current == CHAR
+                                | current == INTEGER)
+            {
+                return @"
+    conv.r8";
+            }
+            if (target == STRING)
+            {
+                if (current == CHAR | current == INTEGER)
+                {
+                    throw new NotImplementedException($"convert {current} to {target}");
+                }
+                if (current == REAL)
+                {
+                    throw new NotImplementedException($"convert {current} to {target}");
+                }
+            }
+            throw new InvalidOperationException($"Cannot convert {current} to {target}");
+        }
     }
 }

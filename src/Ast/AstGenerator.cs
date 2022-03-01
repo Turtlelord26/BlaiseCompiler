@@ -11,6 +11,8 @@ namespace Blaise2.Ast
     {
         protected override AbstractAstNode DefaultResult => AbstractAstNode.Empty;
 
+        private int iterNum = 0;
+
         public override AbstractAstNode VisitFile([NotNull] BlaiseParser.FileContext context) => Visit(context.children[0]);
 
         public override AbstractAstNode VisitProgram([NotNull] BlaiseParser.ProgramContext context)
@@ -114,24 +116,36 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitWhileDo([NotNull] BlaiseParser.WhileDoContext context) => Build<LoopNode>(n =>
         {
             n.LoopType = While;
-            n.Assignment = AbstractAstNode.Empty;
             n.Condition = VisitExpression(context.condition).WithParent(n);
             n.Body = VisitStat(context.st).WithParent(n);
         });
 
-        public override AbstractAstNode VisitForDo([NotNull] BlaiseParser.ForDoContext context) => Build<LoopNode>(n =>
+        public override AbstractAstNode VisitForDo([NotNull] BlaiseParser.ForDoContext context) => Build<ForLoopNode>(n =>
         {
             n.LoopType = For;
-            n.Assignment = VisitAssignment(context.init).WithParent(n);
-            n.Down = context.down is not null;
-            n.Condition = VisitExpression(context.limit).WithParent(n);
+            n.Assignment = (AssignmentNode)VisitAssignment(context.init).WithParent(n);
+            n.Iteration = Build<AssignmentNode>(a =>
+            {
+                a.Identifier = n.Assignment.Identifier;
+                a.Expression = Build<BinaryOpNode>(e =>
+                {
+                    e.Left = Build<VarRefNode>(v => v.Identifier = n.Assignment.Identifier).WithParent(e);
+                    e.Right = Build<IntegerNode>(i => i.IntValue = 1).WithParent(e);
+                    e.Operator = context.direction.Text.Equals("downto") ? BlaiseOperator.Sub : BlaiseOperator.Add;
+                }).WithParent(a);
+            }).WithParent(n);
+            n.Condition = Build<BooleanOpNode>(c =>
+            {
+                c.Left = Build<VarRefNode>(v => v.Identifier = n.Assignment.Identifier).WithParent(c);
+                c.Right = (ITypedNode)VisitExpression(context.limit).WithParent(c);
+                c.Operator = context.direction.Text.Equals("downto") ? BlaiseOperator.Gt : BlaiseOperator.Lt;
+            }).WithParent(n);
             n.Body = VisitStat(context.st).WithParent(n);
         });
 
         public override AbstractAstNode VisitRepeatUntil([NotNull] BlaiseParser.RepeatUntilContext context) => Build<LoopNode>(n =>
         {
             n.LoopType = Until;
-            n.Assignment = AbstractAstNode.Empty;
             n.Condition = VisitExpression(context.condition).WithParent(n);
             n.Body = MakeBlock(context._st).WithParent(n);
         });
@@ -146,8 +160,8 @@ namespace Blaise2.Ast
             {
                 return Build<BinaryOpNode>(n =>
                 {
-                    n.Left = VisitExpression(context.left).WithParent(n);
-                    n.Right = VisitExpression(context.right).WithParent(n);
+                    n.Left = (ITypedNode)VisitExpression(context.left).WithParent(n);
+                    n.Right = (ITypedNode)VisitExpression(context.right).WithParent(n);
                     n.Operator = OpMap[context.binop.Text];
                 });
             }
@@ -155,9 +169,9 @@ namespace Blaise2.Ast
             {
                 return Build<BooleanOpNode>(n =>
                 {
-                    n.Left = VisitExpression(context.left).WithParent(n);
-                    n.Right = VisitExpression(context.right).WithParent(n);
-                    n.Operator = OpMap[context.binop.Text];
+                    n.Left = (ITypedNode)VisitExpression(context.left).WithParent(n);
+                    n.Right = (ITypedNode)VisitExpression(context.right).WithParent(n);
+                    n.Operator = OpMap[context.boolop.Text];
                 });
             }
             else if (context.inner is not null)
@@ -255,8 +269,10 @@ namespace Blaise2.Ast
         {
             n.Identifier = context.IDENTIFIER().GetText();
             n.IsFunction = isFunction;
-            n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).ToList()
-                          ?? new List<AbstractAstNode>();
+            n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).OfType<ITypedNode>().ToList()
+                          ?? new List<ITypedNode>();
         });
+
+        private string MakeForIterator() => $"__forloop_iter{iterNum++}";
     }
 }

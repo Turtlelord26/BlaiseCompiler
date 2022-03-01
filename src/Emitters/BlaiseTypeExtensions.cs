@@ -13,7 +13,7 @@ namespace Blaise2.Emitters
                 BlaiseTypeEnum.CHAR => "char",
                 BlaiseTypeEnum.BOOLEAN => "int32",
                 BlaiseTypeEnum.INTEGER => "int32",
-                BlaiseTypeEnum.REAL => "double",
+                BlaiseTypeEnum.REAL => "float64",
                 BlaiseTypeEnum.STRING => "string",
                 BlaiseTypeEnum.ARRAY => throw new NotImplementedException(),
                 BlaiseTypeEnum.SET => throw new NotImplementedException(),

@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Blaise2.Ast;
 using static Blaise2.Ast.AstNodeExtensions;
+using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.VarType;
 
 namespace Blaise2.Emitters
@@ -12,6 +13,7 @@ namespace Blaise2.Emitters
     {
         private const string nopDelimiter = @"
     nop";
+        private int labelNum = 0;
         private string Cil = string.Empty;
         private string ProgramName;
 
@@ -139,7 +141,44 @@ namespace Blaise2.Emitters
 
         public string Visit(LoopNode node)
         {
-            throw new NotImplementedException();
+            if (node.LoopType == While || node.LoopType == Until)
+            {
+                var bodyLabel = MakeLabel();
+                var endLabel = MakeLabel();
+                var brEnd = node.LoopType == While ? "brfalse" : "brtrue";
+                var brBody = node.LoopType == While ? "brtrue" : "brfalse";
+                var conditionCil = Visit((dynamic)node.Condition);
+                return @$"
+    {conditionCil}
+    {brEnd}.s {endLabel}
+    {bodyLabel}: nop
+    {Visit((dynamic)node.Body)}
+    {conditionCil}
+    {brBody}.s {bodyLabel}
+    {endLabel}: nop";
+            }
+            throw new InvalidOperationException($"Invalid Loop Type {node.LoopType}");
+        }
+
+        public string Visit(ForLoopNode node)
+        {
+            if (node.LoopType == For)
+            {
+                var bodyLabel = MakeLabel();
+                var endLabel = MakeLabel();
+                var conditionCil = Visit((dynamic)node.Condition);
+                return @$"
+    {Visit(node.Assignment)}
+    {conditionCil}
+    brfalse.s {endLabel}
+    {bodyLabel}: nop
+    {Visit((dynamic)node.Body)}
+    {Visit(node.Iteration)}
+    {conditionCil}
+    brtrue.s {bodyLabel}
+    {endLabel}: nop";
+            }
+            throw new InvalidOperationException($"Invalid Loop Type {node.LoopType}");
         }
 
         public string Visit(FunctionCallNode node)
@@ -172,10 +211,16 @@ namespace Blaise2.Emitters
     ldc.i4.s {node.IntValue}";
 
         public string Visit(RealNode node) => @$"
-    ldc.r4 {node.RealValue}";
+    ldc.r8 {node.RealValue}";
+
+        public string Visit(BooleanNode node) => @$"
+    ldc.i4.{(node.BoolValue ? 1 : 0)}";
+
+        public string Bisit(CharNode node) => @$"
+    ldc.i4.s {(int)node.CharValue}";
 
         public string Visit(StringNode node) => @$"
-    ldstr {node.StringValue}";
+    ldstr ""{node.StringValue}""";
 
         public string Visit(VarRefNode node)
         {
@@ -193,8 +238,25 @@ namespace Blaise2.Emitters
             };
         }
 
-        public string Visit(BinaryOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
+        public string Visit(BinaryOpNode node)
+        {
+            var output = $"{Visit((dynamic)node.Left)}";
+            if (!node.LeftType.Equals(node.ExprType))
+            {
+                output += TypeConvert(node.LeftType, node.ExprType);
+            }
+            output += $"{Visit((dynamic)node.Right)}";
+            if (!node.RightType.Equals(node.ExprType))
+            {
+                output += TypeConvert(node.RightType, node.ExprType);
+            }
+            return output + $"{ToCilOperator(node.Operator)}";
+        }
 
         public string Visit(BooleanOpNode node) => $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
+
+        public string Visit(AbstractAstNode node) => node.IsEmpty() ? "" : throw new InvalidOperationException($"Invalid node type {node.Type}");
+
+        private string MakeLabel() => $"Label{labelNum++}";
     }
 }

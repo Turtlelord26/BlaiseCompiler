@@ -83,7 +83,10 @@ whileDo
 	: 'while' condition = expression 'do' st = stat SEMI;
 
 forDo
-	: 'for' init = assignment down = 'down'? 'to' limit = expression 'do' st = stat SEMI;
+	: 'for' init = assignment direction = (
+		'downto'
+		| 'to'
+	) limit = expression 'do' st = stat SEMI;
 
 repeatUntil
 	: 'repeat' (

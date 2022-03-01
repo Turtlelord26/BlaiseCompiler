@@ -58,7 +58,7 @@ namespace Blaise2.Tests
                     x := 0;
                     while x < 5 do begin
                         x := x + 1;
-                    end;
+                    end;;
                     write( x );
                 end.";
             var compiler = new Compiler();
@@ -110,7 +110,7 @@ namespace Blaise2.Tests
 
                 begin
                     for x := 1 to 5 do
-                    begin end;
+                    begin end;;
                     write( x );
                 end.";
             var compiler = new Compiler();
@@ -135,7 +135,7 @@ namespace Blaise2.Tests
 
                 begin
                     for x := 5 downto 1 do
-                    begin end;
+                    begin end;;
                     write( x );
                 end.";
             var compiler = new Compiler();

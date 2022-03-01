@@ -52,8 +52,12 @@ namespace Blaise2
                 renderer.Visualize(Ast);
                 renderer.Close();
 
-                //if (!valid) { return false; }
-                //Test cases want the poor emitter to crash and burn
+                if (!valid)
+                {
+                    Console.WriteLine(string.Join("\n", AstEvaluator.Errors));
+                    //return false;
+                    //Test cases want the poor emitter to crash and burn
+                }
 
                 Cil = new CilEmitter().Visit(Ast);
 

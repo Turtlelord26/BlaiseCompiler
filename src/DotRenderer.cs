@@ -149,23 +149,26 @@ namespace Blaise2
             Treewalk((dynamic)node.Condition, dot);
             Treewalk((dynamic)node.ThenStat, dot);
             Treewalk((dynamic)node.ElseStat, dot);
-        }
+        }*/
 
         private void Treewalk(LoopNode node, string parent)
         {
             var label = $"Loop\n{node.LoopType}";
-            if (node.Down)
-            {
-                label += " (decrementing)";
-            }
             var dot = WriteNewNodeAndParentEdge(parent, label);
-            if (node.LoopType == LoopType.For)
-                Treewalk((dynamic)node.Assignment, dot);
             Treewalk((dynamic)node.Condition, dot);
             Treewalk((dynamic)node.Body, dot);
         }
 
-        private void Treewalk(SwitchNode node, string parent)
+        private void Treewalk(ForLoopNode node, string parent)
+        {
+            var label = $"Loop\n{node.LoopType}";
+            var dot = WriteNewNodeAndParentEdge(parent, label);
+            Treewalk((dynamic)node.Assignment, dot);
+            Treewalk((dynamic)node.Condition, dot);
+            Treewalk((dynamic)node.Body, dot);
+        }
+
+        /*private void Treewalk(SwitchNode node, string parent)
         {
             var label = "Switch";
             var dot = WriteNewNodeAndParentEdge(parent, label);

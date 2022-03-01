@@ -7,68 +7,66 @@ namespace Blaise2.Ast
 {
     public class TypeResolver
     {
-        public static BlaiseType FindType(BinaryOpNode node)
+        public static BlaiseType ResolveType(BinaryOpNode node)
         {
             if (node.ExprType is not null)
             {
                 return node.ExprType;
             }
-            var leftType = FindType((dynamic)node.Left);
-            var rightType = FindType((dynamic)node.Right);
-            var thisType = PromoteBinaryOp(leftType, rightType, node.Operator);
+            node.LeftType = ResolveType((dynamic)node.Left);
+            node.RightType = ResolveType((dynamic)node.Right);
+            var thisType = PromoteBinaryOp(node.LeftType, node.RightType, node.Operator);
             node.ExprType = thisType;
             return thisType;
         }
 
-        public static BlaiseType FindType(BooleanOpNode node)
+        public static BlaiseType ResolveType(BooleanOpNode node)
         {
-            var leftType = FindType((dynamic)node.Left);
-            var rightType = FindType((dynamic)node.Right);
+            var leftType = ResolveType((dynamic)node.Left);
+            var rightType = ResolveType((dynamic)node.Right);
             return ValidateBooleanOp(leftType, rightType);
         }
 
-        public static BlaiseType ResolveType(AbstractAstNode node) => FindType((dynamic)node);
+        public static BlaiseType ResolveType(FunctionCallNode node) => node.CallTarget.ReturnType;
 
-        private static BlaiseType FindType(FunctionCallNode node) => node.CallTarget.ReturnType;
-
-        /*private static BlaiseType FindType(LogicalOpNode node) => new()
+        /*public static BlaiseType ResolveType(LogicalOpNode node) => new()
         {
             BasicType = BOOLEAN
         };
 
-        private static BlaiseType FindType(NotOpNode node) => new()
+        public static BlaiseType ResolveType(NotOpNode node) => new()
         {
             BasicType = BOOLEAN
         };*/
 
-        private static BlaiseType FindType(VarRefNode node) => node.VarInfo?.VarDecl.BlaiseType ?? BlaiseType.ErrorType;
+        public static BlaiseType ResolveType(VarRefNode node) => node.VarInfo?.VarDecl.BlaiseType ?? BlaiseType.ErrorType;
 
-        private static BlaiseType FindType(IntegerNode node) => new()
+        public static BlaiseType ResolveType(IntegerNode node) => new()
         {
             BasicType = INTEGER
         };
 
-        private static BlaiseType FindType(RealNode node) => new()
+        public static BlaiseType ResolveType(RealNode node) => new()
         {
             BasicType = REAL
         };
 
-        private static BlaiseType FindType(BooleanNode node) => new()
+        public static BlaiseType ResolveType(BooleanNode node) => new()
         {
             BasicType = BOOLEAN
         };
 
-        private static BlaiseType FindType(CharNode node) => new()
+        public static BlaiseType ResolveType(CharNode node) => new()
         {
             BasicType = CHAR
         };
 
-        private static BlaiseType FindType(StringNode node) => new()
+        public static BlaiseType ResolveType(StringNode node) => new()
         {
             BasicType = STRING
         };
 
-        private static BlaiseType FindType(AbstractAstNode node) =>
+        public static BlaiseType ResolveType(AbstractAstNode node) =>
             throw new InvalidOperationException($"Unexpected node of type {node.GetType()} found while resolving expression types.");
 
         private static BlaiseType PromoteBinaryOp(BlaiseType left, BlaiseType right, BlaiseOperator op)
@@ -91,7 +89,17 @@ namespace Blaise2.Ast
                                                             | left.BasicType == REAL
                                                             | left.BasicType == STRING)))
             {
-                return right.DeepCopy();
+                if (op == Pow)
+                {
+                    return new()
+                    {
+                        BasicType = REAL
+                    };
+                }
+                else
+                {
+                    return right.DeepCopy();
+                }
             }
             if (right.IsExtended | left.IsExtended)
             {

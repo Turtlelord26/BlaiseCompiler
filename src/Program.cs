@@ -7,7 +7,7 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
-                program Printing;
+                program ConstantFib;
 
                 var x : integer;
                     sqrt5 : real;
@@ -18,12 +18,11 @@ namespace Blaise2
                     sqrt5 := 5 ^ 0.5;
                     a := (1 + sqrt5) / 2.0;
                     b := (1 - sqrt5) / 2.0;
-                    x := 1;
-                    while x < 10 do
+                    for x := 1 to 10 do
                     begin
                         writeln((a ^ x - b ^ x) / sqrt5);
                         x := x + 1;
-                    end;
+                    end;;
                 end.
             ");
         }
