@@ -73,13 +73,13 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitWrite([NotNull] BlaiseParser.WriteContext context) => Build<WriteNode>(n =>
         {
             n.WriteNewline = false;
-            n.Expression = VisitExpression(context.expression()).WithParent(n);
+            n.Expression = (ITypedNode)VisitExpression(context.expression()).WithParent(n);
         });
 
         public override AbstractAstNode VisitWriteln([NotNull] BlaiseParser.WritelnContext context) => Build<WriteNode>(n =>
         {
             n.WriteNewline = true;
-            n.Expression = VisitExpression(context.expression()).WithParent(n);
+            n.Expression = (ITypedNode)VisitExpression(context.expression()).WithParent(n);
         });
 
         public override AbstractAstNode VisitBlock([NotNull] BlaiseParser.BlockContext context) => MakeBlock(context._st);
@@ -88,7 +88,7 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitAssignment([NotNull] BlaiseParser.AssignmentContext context) => Build<AssignmentNode>(n =>
         {
             n.Identifier = context.IDENTIFIER().GetText();
-            n.Expression = VisitExpression(context.expression()).WithParent(n);
+            n.Expression = (ITypedNode)VisitExpression(context.expression()).WithParent(n);
         });
 
         public override AbstractAstNode VisitLoop([Antlr4.Runtime.Misc.NotNull] BlaiseParser.LoopContext context)

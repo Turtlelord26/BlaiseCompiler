@@ -98,7 +98,7 @@ namespace Blaise2
                     // Rewind the memory stream to the beginning, then read what's in it.
                     memStream.Seek(0, SeekOrigin.Begin);
                     using var memReader = new StreamReader(memStream);
-                    var result = memReader.ReadLine();
+                    var result = memReader.ReadToEnd().Trim();
 
                     return result;
                 }

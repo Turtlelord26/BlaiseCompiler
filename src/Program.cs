@@ -10,6 +10,7 @@ namespace Blaise2
                 program ConstantFib;
 
                 var x : integer;
+                    term : integer;
                     sqrt5 : real;
                     a : real;
                     b : real;
@@ -18,10 +19,14 @@ namespace Blaise2
                     sqrt5 := 5 ^ 0.5;
                     a := (1 + sqrt5) / 2.0;
                     b := (1 - sqrt5) / 2.0;
-                    for x := 1 to 10 do
+                    writeln('Constant Fibonacci');
+                    for x := 1 to 20 do
                     begin
-                        writeln((a ^ x - b ^ x) / sqrt5);
-                        x := x + 1;
+                        term := (a ^ x - b ^ x) / sqrt5;
+                        write('Term ');
+                        write(x);
+                        write(': ');
+                        writeln(term);
                     end;;
                 end.
             ");

@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Blaise2.Ast;
 using static Blaise2.Ast.AstNodeExtensions;
+using static Blaise2.Ast.BlaiseTypeEnum;
 using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.VarType;
 
@@ -116,7 +117,7 @@ namespace Blaise2.Emitters
 
         public string Visit(WriteNode node)
         {
-            var exprType = (node.Expression as ITypedNode).GetExprType().ToCilType();
+            var exprType = node.Expression.GetExprType().ToCilType();
             var method = node.WriteNewline ? "WriteLine" : "Write";
             return @$"
     {Visit((dynamic)node.Expression)}
@@ -126,14 +127,27 @@ namespace Blaise2.Emitters
         public string Visit(AssignmentNode node)
         {
             var info = node.VarInfo ?? throw new InvalidOperationException($"Couldn't resolve variable {node.Identifier}.");
+            var varType = info.VarDecl.BlaiseType;
+            var implicitConversion = varType.Equals(node.Expression.GetExprType()) ? "" : varType.ToCilType() switch
+            {
+                "float64" => "conv.r8",
+                "int32" => "conv.i4",
+                "char" => "conv.u2",
+                _ => throw new InvalidOperationException($"Encountered unexpected CIL type {varType.ToCilType()} during {varType} assignment implicit casting.")
+            };
             return info.VarType switch
             {
                 Global => @$"
     ldloc.0{Visit((dynamic)node.Expression)}
+    {implicitConversion}
     stfld {info.VarDecl.BlaiseType.ToCilType()} {ProgramName}::{info.VarDecl.Identifier}",
-                Local => @$"{Visit((dynamic)node.Expression)}
+                Local => @$"
+    {Visit((dynamic)node.Expression)}
+    {implicitConversion}
     stloc {info.VarDecl.Identifier}",
-                Argument => @$"{Visit((dynamic)node.Expression)}
+                Argument => @$"
+    {Visit((dynamic)node.Expression)}
+    {implicitConversion}
     starg.s {info.VarDecl.Identifier}",
                 _ => throw new InvalidOperationException($"Invalid VarType {info.VarType}")
             };

@@ -45,14 +45,14 @@ namespace Blaise2.Ast
 
     public class WriteNode : AbstractAstNode
     {
-        public AbstractAstNode Expression { get; set; }
+        public ITypedNode Expression { get; set; }
         public bool WriteNewline { get; set; }
     }
 
     public class AssignmentNode : AbstractAstNode
     {
         public string Identifier { get; set; }
-        public AbstractAstNode Expression { get; set; }
+        public ITypedNode Expression { get; set; }
         public SymbolInfo VarInfo { get; set; }
     }
 

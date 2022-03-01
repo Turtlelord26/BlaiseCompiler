@@ -69,6 +69,12 @@ namespace Blaise2.Ast
         public static BlaiseType ResolveType(AbstractAstNode node) =>
             throw new InvalidOperationException($"Unexpected node of type {node.GetType()} found while resolving expression types.");
 
+        public static bool IsAllowedAssignment(BlaiseType exprType, BlaiseType varType)
+        {
+            return exprType.Equals(varType)
+                | exprType.BasicType == (INTEGER | REAL | CHAR) & varType.BasicType == (INTEGER | REAL | CHAR);
+        }
+
         private static BlaiseType PromoteBinaryOp(BlaiseType left, BlaiseType right, BlaiseOperator op)
         {
             if (left.BasicType > right.BasicType)
