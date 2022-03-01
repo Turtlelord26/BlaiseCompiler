@@ -11,8 +11,6 @@ namespace Blaise2.Ast
     {
         protected override AbstractAstNode DefaultResult => AbstractAstNode.Empty;
 
-        private int iterNum = 0;
-
         public override AbstractAstNode VisitFile([NotNull] BlaiseParser.FileContext context) => Visit(context.children[0]);
 
         public override AbstractAstNode VisitProgram([NotNull] BlaiseParser.ProgramContext context)
@@ -272,7 +270,5 @@ namespace Blaise2.Ast
             n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).OfType<ITypedNode>().ToList()
                           ?? new List<ITypedNode>();
         });
-
-        private string MakeForIterator() => $"__forloop_iter{iterNum++}";
     }
 }
