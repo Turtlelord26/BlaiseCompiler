@@ -71,8 +71,10 @@ namespace Blaise2.Ast
 
         public static bool IsAllowedAssignment(BlaiseType exprType, BlaiseType varType)
         {
+            var interchangeableTypes = new List<BlaiseTypeEnum>() { CHAR, INTEGER, REAL };
             return exprType.Equals(varType)
-                | exprType.BasicType == (INTEGER | REAL | CHAR) & varType.BasicType == (INTEGER | REAL | CHAR);
+                | interchangeableTypes.Contains(exprType.BasicType)
+                    & varType is not null && interchangeableTypes.Contains(varType.BasicType);
         }
 
         private static BlaiseType PromoteBinaryOp(BlaiseType left, BlaiseType right, BlaiseOperator op)

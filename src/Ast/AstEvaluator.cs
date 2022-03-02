@@ -45,8 +45,8 @@ namespace Blaise2.Ast
             node.VarInfo = ReferenceResolver.FindVariable(node, node.Identifier);
             return node.VarInfo is not null
                  & Evaluate((dynamic)node.Expression)
-                 & TypeResolver.ResolveType((dynamic)node.Expression)
-                               .Equals(node.VarInfo?.VarDecl.BlaiseType);
+                 & TypeResolver.IsAllowedAssignment(TypeResolver.ResolveType((dynamic)node.Expression),
+                                                    node.VarInfo?.VarDecl.BlaiseType);
         }
 
         private static bool Evaluate(FunctionNode node)

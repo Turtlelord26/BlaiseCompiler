@@ -55,8 +55,7 @@ namespace Blaise2
                 if (!valid)
                 {
                     Console.WriteLine(string.Join("\n", AstEvaluator.Errors));
-                    //return false;
-                    //Test cases want the poor emitter to crash and burn
+                    throw new InvalidOperationException(string.Join("\n", AstEvaluator.Errors));
                 }
 
                 Cil = new CilEmitter().Visit(Ast);

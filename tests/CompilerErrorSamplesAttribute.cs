@@ -22,6 +22,31 @@ namespace Blaise2.Tests
                 end.
             ",
             typeof(InvalidOperationException) };
+
+            yield return new object[] { "If condition expression typecheck", @"
+                program IfCondition;
+                
+                var x : real;
+                
+                if (x + 1) then
+                    x := x + 1;.
+                ",
+                typeof(InvalidOperationException) };
+
+            yield return new object[] { "Loop condition expression typecheck", @"
+                program UntilCondition;
+                
+                var x : real;
+                
+                begin
+                    x := 1.5;
+                    repeat
+                        x := x + 1;
+                        write(x);
+                    until (x + 1.5);
+                end.
+                ",
+                typeof(InvalidOperationException) };
         }
 
         public string GetDisplayName(MethodInfo methodInfo, object[] data)
