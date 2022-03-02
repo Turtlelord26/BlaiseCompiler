@@ -91,6 +91,17 @@ namespace Blaise2.Ast
             n.Expression = (ITypedNode)VisitExpression(context.expression()).WithParent(n);
         });
 
+        public override AbstractAstNode VisitIfThenElse([NotNull] BlaiseParser.IfThenElseContext context)
+        {
+            var elseStatContext = context.elseSt;
+            return Build<IfNode>(i =>
+            {
+                i.Condition = (ITypedNode)VisitExpression(context.condition).WithParent(i);
+                i.ThenStat = VisitStat(context.thenSt).WithParent(i);
+                i.ElseStat = elseStatContext is not null ? VisitStat(elseStatContext).WithParent(i) : AbstractAstNode.Empty;
+            });
+        }
+
         public override AbstractAstNode VisitLoop([Antlr4.Runtime.Misc.NotNull] BlaiseParser.LoopContext context)
         {
             if (context.whileDo() is not null)

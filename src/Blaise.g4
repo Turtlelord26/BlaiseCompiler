@@ -40,6 +40,7 @@ stat
 	| write
 	| writeln
 	| procedureCall
+	| ifThenElse
 	| loop
 	| block;
 
@@ -73,6 +74,11 @@ paramsList
 	: var += varDecl (
 		SEMI var += varDecl
 	)*;
+
+ifThenElse
+	: 'if' condition = expression 'then' thenSt = stat SEMI (
+		'else' elseSt = stat SEMI
+	)?;
 
 loop
 	: whileDo

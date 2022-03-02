@@ -142,14 +142,14 @@ namespace Blaise2
             }
         }
 
-        /*private void Treewalk(IfNode node, string parent)
+        private void Treewalk(IfNode node, string parent)
         {
             var label = "If Statement";
             var dot = WriteNewNodeAndParentEdge(parent, label);
             Treewalk((dynamic)node.Condition, dot);
             Treewalk((dynamic)node.ThenStat, dot);
             Treewalk((dynamic)node.ElseStat, dot);
-        }*/
+        }
 
         private void Treewalk(LoopNode node, string parent)
         {

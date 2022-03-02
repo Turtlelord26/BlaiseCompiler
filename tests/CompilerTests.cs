@@ -148,5 +148,33 @@ namespace Blaise2.Tests
             // Assert
             Assert.AreEqual("1", result);
         }
+
+        [TestMethod]
+        public void CanDoIf()
+        {
+            // Arrange
+            const string src = @"
+                program Printing;
+
+                var x : integer;
+
+                begin
+                    x := 5;
+                    if (x > 5) then
+                        x := x - 1;
+                    else if (x <= 5) then
+                        x := x + 1;;;
+                    write( x );
+                end.";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.AreEqual("6", result);
+        }
     }
 }

@@ -153,6 +153,20 @@ namespace Blaise2.Emitters
             };
         }
 
+        public string Visit(IfNode node)
+        {
+            var thenLabel = MakeLabel();
+            var endLabel = MakeLabel();
+            return @$"
+    {Visit((dynamic)node.Condition)}
+    brtrue.s {thenLabel}
+    {Visit((dynamic)node.ElseStat)}
+    br.s {endLabel}
+    {thenLabel}: nop
+    {Visit((dynamic)node.ThenStat)}
+    {endLabel}: nop";
+        }
+
         public string Visit(LoopNode node)
         {
             if (node.LoopType == While || node.LoopType == Until)

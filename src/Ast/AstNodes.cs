@@ -56,6 +56,13 @@ namespace Blaise2.Ast
         public SymbolInfo VarInfo { get; set; }
     }
 
+    public class IfNode : AbstractAstNode
+    {
+        public ITypedNode Condition { get; set; }
+        public AbstractAstNode ThenStat { get; set; }
+        public AbstractAstNode ElseStat { get; set; }
+    }
+
     public class LoopNode : AbstractAstNode
     {
         public LoopType LoopType { get; set; }

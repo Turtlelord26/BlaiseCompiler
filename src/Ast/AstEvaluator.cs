@@ -69,6 +69,19 @@ namespace Blaise2.Ast
             return valid;
         }
 
+        private static bool Evaluate(IfNode node)
+        {
+            var valid = Evaluate((dynamic)node.Condition)
+                    & Evaluate((dynamic)node.ThenStat)
+                    & Evaluate((dynamic)node.ElseStat);
+            if (TypeResolver.ResolveType((dynamic)node.Condition).BasicType != BOOLEAN)
+            {
+                Errors.Append("Cannot resolve if condition to a bool.");
+                return false;
+            }
+            return valid;
+        }
+
         private static bool Evaluate(LoopNode node)
         {
             var valid = Evaluate((dynamic)node.Condition)
