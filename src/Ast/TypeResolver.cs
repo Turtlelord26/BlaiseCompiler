@@ -77,6 +77,13 @@ namespace Blaise2.Ast
                     & varType is not null && interchangeableTypes.Contains(varType.BasicType);
         }
 
+        public static bool IsValidSwitchInput(BlaiseType switchType)
+        {
+            return switchType.BasicType == CHAR
+                | switchType.BasicType == INTEGER
+                | switchType.BasicType == REAL;
+        }
+
         private static BlaiseType PromoteBinaryOp(BlaiseType left, BlaiseType right, BlaiseOperator op)
         {
             if (left.BasicType > right.BasicType)

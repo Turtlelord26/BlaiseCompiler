@@ -122,6 +122,25 @@ namespace Blaise2.Ast
             }
         }
 
+        public override AbstractAstNode VisitSwitchSt([NotNull] BlaiseParser.SwitchStContext context)
+        {
+            return Build<SwitchNode>(s =>
+            {
+                s.Input = (ITypedNode)VisitExpression(context.on).WithParent(s);
+                s.Cases = context.switchCase().Select(c => (SwitchCaseNode)VisitSwitchCase(c).WithParent(s)).ToList();
+                s.Default = context.defaultCase is not null ? VisitStat(context.defaultCase).WithParent(s) : AbstractAstNode.Empty;
+            });
+        }
+
+        public override AbstractAstNode VisitSwitchCase([NotNull] BlaiseParser.SwitchCaseContext context)
+        {
+            return Build<SwitchCaseNode>(c =>
+            {
+                c.Case = (ITypedNode)VisitSwitchAtom(context.alt).WithParent(c);
+                c.Stat = VisitStat(context.st).WithParent(c);
+            });
+        }
+
         public override AbstractAstNode VisitWhileDo([NotNull] BlaiseParser.WhileDoContext context) => Build<LoopNode>(n =>
         {
             n.LoopType = While;
@@ -207,13 +226,14 @@ namespace Blaise2.Ast
 
         public override AbstractAstNode VisitNumericAtom([NotNull] BlaiseParser.NumericAtomContext context)
         {
+            var sign = (context.sign?.Text.Equals("-") ?? false) ? -1 : 1;
             if (context.INTEGER() is not null)
             {
-                return Build<IntegerNode>(n => { n.IntValue = int.Parse(context.INTEGER().GetText()); });
+                return Build<IntegerNode>(n => { n.IntValue = sign * int.Parse(context.INTEGER().GetText()); });
             }
             else if (context.REAL() is not null)
             {
-                return Build<RealNode>(n => { n.RealValue = double.Parse(context.REAL().GetText()); });
+                return Build<RealNode>(n => { n.RealValue = sign * double.Parse(context.REAL().GetText()); });
             }
             else
             {

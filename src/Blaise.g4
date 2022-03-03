@@ -42,6 +42,7 @@ stat
 	| procedureCall
 	| ifThenElse
 	| loop
+	| switchSt
 	| block;
 
 block
@@ -99,6 +100,14 @@ repeatUntil
 		st += stat SEMI
 	)+ 'until' condition = expression;
 
+switchSt
+	: 'case' LPAREN on = expression RPAREN 'of' switchCase+ (
+		'else' defaultCase = stat
+	) 'end';
+
+switchCase
+	: alt = switchAtom ':' st = stat SEMI;
+
 expression
 	: left = expression binop = POW right = expression
 	| left = expression binop = (
@@ -112,7 +121,7 @@ expression
 	| left = expression boolop = COMP right = expression
 	| LPAREN inner = expression RPAREN
 	| functionCall
-	| sign = (PLUS | MINUS)? numericAtom
+	| numericAtom
 	| atom;
 
 procedureCall
@@ -130,14 +139,23 @@ argsList
 	)*;
 
 numericAtom
-	: INTEGER
-	| REAL;
+	: sign = (
+		PLUS
+		| MINUS
+	)? (
+		INTEGER
+		| REAL
+	);
 
 atom
 	: IDENTIFIER
 	| BOOLEAN
 	| CHAR
 	| STRING;
+
+switchAtom
+	: numericAtom
+	| CHAR;
 
 KINTEGER
 	: 'integer';

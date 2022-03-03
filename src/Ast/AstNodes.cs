@@ -76,6 +76,19 @@ namespace Blaise2.Ast
         public AssignmentNode Iteration { get; set; }
     }
 
+    public class SwitchNode : AbstractAstNode
+    {
+        public ITypedNode Input { get; set; }
+        public List<SwitchCaseNode> Cases { get; set; }
+        public AbstractAstNode Default { get; set; }
+    }
+
+    public class SwitchCaseNode : AbstractAstNode
+    {
+        public ITypedNode Case { get; set; }
+        public AbstractAstNode Stat { get; set; }
+    }
+
     public class BinaryOpNode : AbstractAstNode, ITypedNode
     {
         public ITypedNode Left { get; set; }

@@ -209,6 +209,42 @@ namespace Blaise2.Emitters
             throw new InvalidOperationException($"Invalid Loop Type {node.LoopType}");
         }
 
+        public string Visit(SwitchNode node)
+        {
+            throw new NotImplementedException("Figure out how to add more locals while in the emitter? Or before ... somewhere?");
+            /*var endLabel = MakeLabel();
+            var branchHandling = "";
+            var cases = "";
+            var ending = "";
+            foreach (var st in node.Cases)
+            {
+                var label = MakeLabel();
+                branchHandling += @$"
+    ";
+                cases += @$"
+    {label}
+    {Visit((dynamic)st.Stat)}
+    br.s {endLabel}";
+            }
+            if (!node.Default.IsEmpty())
+            {
+                var defaultLabel = MakeLabel();
+                branchHandling += @$"
+    br.s {defaultLabel}";
+                ending += @$"
+    {defaultLabel}: nop
+    {Visit((dynamic)node.Default)}";
+            }
+            else
+            {
+                branchHandling += @$"
+    br.s {endLabel}";
+            }
+            ending += @$"
+    {endLabel}: nop";
+            return String.Join(String.Empty, branchHandling, cases, ending);*/
+        }
+
         public string Visit(FunctionCallNode node)
         {
             //Put Call target on node later? Need to calc it during semantic analysis anyway.

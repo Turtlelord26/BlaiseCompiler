@@ -12,31 +12,13 @@ namespace Blaise2.Ast
 
         public static List<string> Errors { get; private set; } = new();
 
-        private static bool Evaluate(ProgramNode node)
-        {
-            var valid = ContainsNoDuplicateVariables(node.VarDecls)
-                        & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures));
-            foreach (var proc in node.Procedures)
-            {
-                valid = valid & Evaluate(proc);
-            }
-            foreach (var func in node.Functions)
-            {
-                valid = valid & Evaluate(func);
-            }
-            valid = valid & Evaluate((dynamic)node.Stat);
-            return valid;
-        }
+        private static bool Evaluate(ProgramNode node) => ContainsNoDuplicateVariables(node.VarDecls)
+                                                        & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
+                                                        & node.Procedures.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                                                        & node.Functions.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                                                        & Evaluate((dynamic)node.Stat);
 
-        private static bool Evaluate(BlockNode node)
-        {
-            var valid = true;
-            foreach (var stat in node.Stats)
-            {
-                valid = valid & Evaluate((dynamic)stat);
-            }
-            return valid;
-        }
+        private static bool Evaluate(BlockNode node) => node.Stats.Aggregate(true, (valid, next) => valid & Evaluate((dynamic)next));
 
         private static bool Evaluate(WriteNode node) => Evaluate((dynamic)node.Expression);
 
@@ -54,19 +36,12 @@ namespace Blaise2.Ast
             var valid = node.IsFunction && node.ReturnType is not null
                       | !node.IsFunction;
             var varDecls = node.VarDecls.Concat(node.Params).ToList();
-            valid = valid
-                    & ContainsNoDuplicateVariables(varDecls)
-                    & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures));
-            foreach (var proc in node.Procedures)
-            {
-                valid = valid & Evaluate(proc);
-            }
-            foreach (var func in node.Functions)
-            {
-                valid = valid & Evaluate(func);
-            }
-            valid = valid & Evaluate((dynamic)node.Stat);
-            return valid;
+            return valid
+                & ContainsNoDuplicateVariables(varDecls)
+                & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
+                & node.Procedures.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                & node.Functions.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                & Evaluate((dynamic)node.Stat);
         }
 
         private static bool Evaluate(IfNode node)
@@ -97,6 +72,31 @@ namespace Blaise2.Ast
         private static bool Evaluate(ForLoopNode node) => Evaluate((LoopNode)node)
                                                         & Evaluate(node.Assignment)
                                                         & Evaluate(node.Iteration);
+
+        private static bool Evaluate(SwitchNode node)
+        {
+            var inType = TypeResolver.ResolveType((dynamic)node.Input);
+            var valid = node.Cases.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                    & Evaluate((dynamic)node.Default);
+            if (!TypeResolver.IsValidSwitchInput(inType))
+            {
+                Errors.Append($"{inType} is not a valid case statement input type.");
+                return false;
+            };
+            var typesMatch = node.Cases.Aggregate(true, (valid, next) => valid & TypeResolver.ResolveType((dynamic)next.Case).Equals(inType));
+            if (!typesMatch)
+            {
+                Errors.Append($"Case alternative type mismatch, expected {inType}.");
+                return false;
+            }
+            return valid;
+        }
+
+        private static bool Evaluate(SwitchCaseNode node)
+        {
+            return Evaluate((dynamic)node.Case)
+                & Evaluate((dynamic)node.Stat);
+        }
 
         private static bool Evaluate(BinaryOpNode node)
         {
