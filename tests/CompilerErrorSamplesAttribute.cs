@@ -29,7 +29,7 @@ namespace Blaise2.Tests
                 var x : real;
                 
                 if (x + 1) then
-                    x := x + 1;.
+                    x := x + 1.
                 ",
                 typeof(InvalidOperationException) };
 

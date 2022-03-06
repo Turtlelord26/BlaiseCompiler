@@ -59,7 +59,7 @@ namespace Blaise2.Tests
                         write(x);
                         write(': ');
                         writeln(term);
-                    end;;
+                    end;
                 end.
             ",
             @"Constant Fibonacci

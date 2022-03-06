@@ -21,22 +21,18 @@ namespace Blaise2.Emitters
         public string Visit(ProgramNode node)
         {
             ProgramName = node.Identifier;
-
-            Cil += Preamble();
-
-            Cil += $@"
+            var fields = node.VarDecls.Aggregate("", (cil, v) => cil += $@"
+    .field public {v.BlaiseType.ToCilType()} {v.Identifier}");
+            var methods = node.Procedures.Concat(node.Functions).Aggregate("\n", (cil, next) => cil += Visit(next));
+            return @$"{Preamble()}
 .class public auto ansi beforefieldinit {node.Identifier}
     extends [System.Private.CoreLib]System.Object
-{{";
-            var fields = string.Join('\n', node.VarDecls.OfType<VarDeclNode>().Select(f => $@"
-    .field public {f.BlaiseType.ToCilType()} {f.Identifier}"));
-            Cil += @$"
-    {fields}";
+{{{fields}
 
-            // TODO: emit routines as methods
+    // Methods
+    
+    {methods}
 
-            Cil += $@"
-  // Methods
   .method public hidebysig static void main() cil managed
   {{
     .entrypoint
@@ -46,70 +42,41 @@ namespace Blaise2.Emitters
 
     nop
     newobj instance void {ProgramName}::.ctor()
-    stloc.0";
-
-            Cil += Visit((dynamic)node.Stat);
-
-            Cil += @"
+    stloc.0
+    {Visit((dynamic)node.Stat)}
     nop
     ret
-  } // end of main
+  }} // end of main
+  {Postamble()}
 ";
-            Cil += Postamble();
-
-            return Cil;
         }
 
         public string Visit(FunctionNode node)
         {
-
             var isFunction = node.IsFunction;
             var returnType = isFunction ? node.ReturnType.ToCilType() : "void";
+            var paramsList = string.Join(",\n\t\t", node.Params.Select(p => $"{p.BlaiseType.ToCilType()} {p.Identifier}"));
+            var index = 1;
+            var locals = string.Join("", node.VarDecls.Select(v => $",\n\t\t[{index++}] {v.BlaiseType.ToCilType()} {v.Identifier}"));
             var output = @$"
-    .method public hidebysig 
-        instance {returnType} {node.Identifier} (";
-            output += string.Join("", node.Params.Select(p => @$"
-            {p.BlaiseType.ToCilType()} {p.Identifier}"));
-            output += @"
-        ) cil managed
-    {";
-            if (isFunction | node.VarDecls.Count > 0)
+  .method public hidebysig 
+    instance {returnType} {node.Identifier} (
+        {paramsList}
+    ) cil managed
+  {{
+    .locals init (
+        [0] class {ProgramName}
+        {locals}
+    )
+    ldarg.0
+    stloc.0
+    {Visit((dynamic)node.Stat)}
+  }}";
+            //THIS IS WHERE INNER FUNCS AND PROCS WOULD GO
+            if (node.Functions.Count() > 0 | node.Procedures.Count() > 0)
             {
-                var index = 0;
-                output += @$"
-        .locals init (";
-                if (isFunction)
-                {
-                    output += @$"
-            [0] {node.ReturnType.ToCilType()}";
-                    index++;
-                }
-                foreach (var v in node.VarDecls)
-                {
-                    output += @$"
-        [{index}] {v.BlaiseType.ToCilType()} {v.Identifier}";
-                    index++;
-                }
-                output += @"
-        )
-        nop";
+                throw new NotImplementedException("Can't emit nested functions yet");
             }
-            //Make a findable VarDecl for the return value if its a function
-            if (isFunction)
-            {
-                node.VarDecls.Add(Build<VarDeclNode>(n =>
-                {
-                    n.Identifier = node.Identifier;
-                    n.BlaiseType = node.ReturnType;
-                }));
-            }
-            //THIS IS WHERE FUNCS AND PROCS WOULD GO
-            output += Visit((dynamic)node.Stat);
-            output += @"
-        nop
-        ldloc.0
-        ret
-    }";
             return output;
         }
 
@@ -156,15 +123,24 @@ namespace Blaise2.Emitters
         public string Visit(IfNode node)
         {
             var thenLabel = MakeLabel();
-            var endLabel = MakeLabel();
-            return @$"
+            var returns = FunctionReturnEvaluator.Visit(node);
+            var output = @$"
     {Visit((dynamic)node.Condition)}
-    brtrue.s {thenLabel}
-    {Visit((dynamic)node.ElseStat)}
-    br.s {endLabel}
+    brtrue.s {thenLabel}";
+            var elseStat = @$"
+    {Visit((dynamic)node.ElseStat)}";
+            var thenStat = @$"
     {thenLabel}: nop
-    {Visit((dynamic)node.ThenStat)}
+    {Visit((dynamic)node.ThenStat)}";
+            if (!returns)
+            {
+                var endLabel = MakeLabel();
+                elseStat += @$"
+    br.s {endLabel}";
+                thenStat += @$"
     {endLabel}: nop";
+            }
+            return output + elseStat + thenStat;
         }
 
         public string Visit(LoopNode node)
@@ -211,6 +187,8 @@ namespace Blaise2.Emitters
 
         public string Visit(SwitchNode node)
         {
+            //Try reversing the order of function and program emitters. Visit and store the contents, then visit the varblocks.
+            //Use the contents to add more vardeclnodes to the tree as needed. Then catch later in VisitFunction/program.
             throw new NotImplementedException("Figure out how to add more locals while in the emitter? Or before ... somewhere?");
             /*var endLabel = MakeLabel();
             var branchHandling = "";
@@ -247,28 +225,20 @@ namespace Blaise2.Emitters
 
         public string Visit(FunctionCallNode node)
         {
-            //Put Call target on node later? Need to calc it during semantic analysis anyway.
-            var target = node.CallTarget;
-            if (target is FunctionNode)
-            {
-                var func = target as FunctionNode;
-                var paramTypes = string.Join(' ', func.Params.Select(p => p.BlaiseType.ToCilType()));
-                var argExprs = string.Join('\n', node.Arguments.Select(a => Visit((dynamic)a)).Reverse());
-                return @$"
-    ldarg.0
+            var callTarget = node.CallTarget;
+            var paramTypes = string.Join(", ", callTarget.Params.Select(p => p.BlaiseType.ToCilType()));
+            var argExprs = string.Join('\n', node.Arguments.Select(a => Visit((dynamic)a)));
+            var returnType = callTarget.IsFunction ? callTarget.ReturnType.ToCilType() : "void";
+            return @$"
+    ldloc.0
     {argExprs}
-    call instance {func.ReturnType.ToCilType()} {ProgramName}::{func.Identifier}({paramTypes})";
-            }
-            else
-            {
-                var proc = target as FunctionNode;
-                var paramTypes = string.Join(' ', proc.Params.Select(p => p.BlaiseType.ToCilType()));
-                var argExprs = string.Join('\n', node.Arguments.Select(a => Visit((dynamic)a)).Reverse());
-                return @$"
-    ldarg.0
-    {argExprs}
-    call instance void {ProgramName}::{proc.Identifier}({paramTypes})";
-            }
+    call instance {returnType} {ProgramName}::{callTarget.Identifier}({paramTypes})";
+        }
+
+        public string Visit(ReturnNode node)
+        {
+            return @$"{Visit((dynamic)node.Expression)}
+    ret";
         }
 
         public string Visit(IntegerNode node) => @$"

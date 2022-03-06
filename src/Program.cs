@@ -7,29 +7,14 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
-                program ConstantFib;
+                program Printing;
 
                 var x : integer;
-                    term : integer;
-                    sqrt5 : real;
-                    a : real;
-                    b : real;
 
                 begin
-                    sqrt5 := 5 ^ 0.5;
-                    a := (1 + sqrt5) / 2.0;
-                    b := (1 - sqrt5) / 2.0;
-                    writeln('Constant Fibonacci');
-                    for x := 1 to 20 do
-                    begin
-                        term := (a ^ x - b ^ x) / sqrt5;
-                        write('Term ');
-                        write(x);
-                        write(': ');
-                        writeln(term);
-                    end;;
-                end.
-            ");
+                    x := 0;
+                    if x = 0 then write(true);
+                end.");
         }
 
         static void Try(string input)

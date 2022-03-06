@@ -15,10 +15,7 @@ namespace Blaise2
             outStream = new StreamWriter(filename);
         }
 
-        public void Close()
-        {
-            outStream.Close();
-        }
+        public void Close() => outStream.Close();
 
         public void Visualize(AbstractAstNode root)
         {
@@ -31,18 +28,9 @@ namespace Blaise2
         {
             var dot = MakeDotNode();
             outStream.WriteLine($"  {dot} [shape=\"rect\" label=\"Program\n{node.Identifier}\"]");
-            foreach (var decl in node.VarDecls)
-            {
-                Treewalk((dynamic)decl, dot);
-            }
-            foreach (var proc in node.Procedures)
-            {
-                Treewalk((dynamic)proc, dot);
-            }
-            foreach (var func in node.Functions)
-            {
-                Treewalk((dynamic)func, dot);
-            }
+            node.VarDecls.ForEach(decl => Treewalk((dynamic)decl, dot));
+            node.Procedures.ForEach(proc => Treewalk((dynamic)proc, dot));
+            node.Functions.ForEach(func => Treewalk((dynamic)func, dot));
             Treewalk((dynamic)node.Stat, dot);
         }
 
@@ -56,10 +44,7 @@ namespace Blaise2
         {
             var label = "Block";
             var dot = WriteNewNodeAndParentEdge(parent, label);
-            foreach (var stat in node.Stats)
-            {
-                Treewalk((dynamic)stat, dot);
-            }
+            node.Stats.ForEach(stat => Treewalk((dynamic)stat, dot));
         }
 
         private void Treewalk(WriteNode node, string parent)
@@ -81,22 +66,10 @@ namespace Blaise2
             var label = node.IsFunction ? $"Function\n{node.Identifier}\n{node.ReturnType.ToString()}"
                                         : $"Procedure\n{node.Identifier}";
             var dot = WriteNewNodeAndParentEdge(parent, label);
-            foreach (var param in node.Params)
-            {
-                Treewalk((dynamic)param, dot);
-            }
-            foreach (var decl in node.VarDecls)
-            {
-                Treewalk((dynamic)decl, dot);
-            }
-            /*foreach (var proc in node.Procedures)
-            {
-                Treewalk((dynamic)proc, dot);
-            }
-            foreach (var func in node.Functions)
-            {
-                Treewalk((dynamic)func, dot);
-            }*/
+            node.Params.ForEach(param => Treewalk((dynamic)param, dot));
+            node.VarDecls.ForEach(decl => Treewalk((dynamic)decl, dot));
+            node.Procedures.ForEach(proc => Treewalk((dynamic)proc, dot));
+            node.Functions.ForEach(func => Treewalk((dynamic)func, dot));
             Treewalk((dynamic)node.Stat, dot);
         }
 
@@ -136,10 +109,7 @@ namespace Blaise2
             var label = node.IsFunction ? $"Function Call\n{node.Identifier}"
                                        : $"Procedure Call\n{node.Identifier}";
             var dot = WriteNewNodeAndParentEdge(parent, label);
-            foreach (var arg in node.Arguments)
-            {
-                Treewalk((dynamic)arg, dot);
-            }
+            node.Arguments.ForEach(arg => Treewalk((dynamic)arg, dot));
         }
 
         private void Treewalk(IfNode node, string parent)
@@ -168,15 +138,12 @@ namespace Blaise2
             Treewalk((dynamic)node.Body, dot);
         }
 
-        /*private void Treewalk(SwitchNode node, string parent)
+        private void Treewalk(SwitchNode node, string parent)
         {
             var label = "Switch";
             var dot = WriteNewNodeAndParentEdge(parent, label);
             Treewalk((dynamic)node.Input, dot);
-            foreach (var switchCase in node.Cases)
-            {
-                Treewalk((dynamic)switchCase, dot);
-            }
+            node.Cases.ForEach(c => Treewalk((dynamic)c, dot));
         }
 
         private void Treewalk(SwitchCaseNode node, string parent)
@@ -185,7 +152,14 @@ namespace Blaise2
             var dot = WriteNewNodeAndParentEdge(parent, label);
             Treewalk((dynamic)node.Case, dot);
             Treewalk((dynamic)node.Stat, dot);
-        }*/
+        }
+
+        private void Treewalk(ReturnNode node, string parent)
+        {
+            var label = "Return";
+            var dot = WriteNewNodeAndParentEdge(parent, label);
+            Treewalk((dynamic)node.Expression, dot);
+        }
 
         private void Treewalk(IntegerNode node, string parent)
         {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
@@ -12,7 +13,10 @@ namespace Blaise2.Ast
 
         public bool IsEmpty() => Equals(Empty);
 
-        private class EmptyNode : AbstractAstNode { }
+        private class EmptyNode : AbstractAstNode, ITypedNode
+        {
+            public BlaiseType GetExprType() => BlaiseType.ErrorType;
+        }
     }
 
     public partial class ProgramNode : AbstractAstNode, IVarOwner
@@ -66,7 +70,7 @@ namespace Blaise2.Ast
     public class LoopNode : AbstractAstNode
     {
         public LoopType LoopType { get; set; }
-        public AbstractAstNode Condition { get; set; }
+        public ITypedNode Condition { get; set; }
         public AbstractAstNode Body { get; set; }
     }
 
@@ -87,6 +91,11 @@ namespace Blaise2.Ast
     {
         public ITypedNode Case { get; set; }
         public AbstractAstNode Stat { get; set; }
+    }
+
+    public class ReturnNode : AbstractAstNode
+    {
+        public ITypedNode Expression { get; set; }
     }
 
     public class BinaryOpNode : AbstractAstNode, ITypedNode

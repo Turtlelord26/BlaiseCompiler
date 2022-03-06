@@ -19,7 +19,7 @@ namespace Blaise2.Ast
             return Build<ProgramNode>(n =>
             {
                 n.Identifier = context.programDecl().IDENTIFIER().GetText();
-                n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList()
+                n.VarDecls = context.varBlock()?._decl.Select(d => VisitVarDecl(d).WithParent(n)).OfType<VarDeclNode>().ToList()
                             ?? new List<VarDeclNode>();
                 n.Procedures = routines?._procs.Select(p => VisitProcedure(p).WithParent(n)).OfType<FunctionNode>().ToList()
                             ?? new List<FunctionNode>();
@@ -42,12 +42,18 @@ namespace Blaise2.Ast
                 n.Identifier = v.IDENTIFIER().GetText();
                 n.BlaiseType = BuildBlaiseType(v.typeExpr());
             }));
+            var routines = context.routines();
             return Build<FunctionNode>(n =>
             {
                 n.Identifier = context.IDENTIFIER().GetText();
                 n.IsFunction = false;
                 n.Params = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
-                n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
+                n.VarDecls = context.varBlock()?._decl.Select(d => VisitVarDecl(d).WithParent(n)).OfType<VarDeclNode>().ToList()
+                            ?? new List<VarDeclNode>();
+                n.Procedures = routines?._procs.Select(p => VisitProcedure(p).WithParent(n)).OfType<FunctionNode>().ToList()
+                            ?? new List<FunctionNode>();
+                n.Functions = routines?._funcs.Select(f => VisitFunction(f).WithParent(n)).OfType<FunctionNode>().ToList()
+                            ?? new List<FunctionNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
             });
         }
@@ -59,13 +65,19 @@ namespace Blaise2.Ast
                 n.Identifier = v.IDENTIFIER().GetText();
                 n.BlaiseType = BuildBlaiseType(v.typeExpr());
             }));
+            var routines = context.routines();
             return Build<FunctionNode>(n =>
             {
                 n.Identifier = context.IDENTIFIER().GetText();
                 n.IsFunction = true;
                 n.ReturnType = BuildBlaiseType(context.typeExpr());
                 n.Params = args?.Select(a => a.WithParent(n)).ToList() ?? new List<VarDeclNode>();
-                n.VarDecls = context.varBlock()?._decl.Select(d => (VarDeclNode)VisitVarDecl(d).WithParent(n)).ToList() ?? new List<VarDeclNode>();
+                n.VarDecls = context.varBlock()?._decl.Select(d => VisitVarDecl(d).WithParent(n)).OfType<VarDeclNode>().ToList()
+                            ?? new List<VarDeclNode>();
+                n.Procedures = routines?._procs.Select(p => VisitProcedure(p).WithParent(n)).OfType<FunctionNode>().ToList()
+                            ?? new List<FunctionNode>();
+                n.Functions = routines?._funcs.Select(f => VisitFunction(f).WithParent(n)).OfType<FunctionNode>().ToList()
+                            ?? new List<FunctionNode>();
                 n.Stat = VisitStat(context.stat()).WithParent(n);
             });
         }
@@ -144,7 +156,7 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitWhileDo([NotNull] BlaiseParser.WhileDoContext context) => Build<LoopNode>(n =>
         {
             n.LoopType = While;
-            n.Condition = VisitExpression(context.condition).WithParent(n);
+            n.Condition = (ITypedNode)VisitExpression(context.condition).WithParent(n);
             n.Body = VisitStat(context.st).WithParent(n);
         });
 
@@ -174,8 +186,14 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitRepeatUntil([NotNull] BlaiseParser.RepeatUntilContext context) => Build<LoopNode>(n =>
         {
             n.LoopType = Until;
-            n.Condition = VisitExpression(context.condition).WithParent(n);
+            n.Condition = (ITypedNode)VisitExpression(context.condition).WithParent(n);
             n.Body = MakeBlock(context._st).WithParent(n);
+        });
+
+        public override AbstractAstNode VisitRet([NotNull] BlaiseParser.RetContext context) => Build<ReturnNode>(n =>
+        {
+            n.Expression = context.expression() is not null ? (ITypedNode)VisitExpression(context.expression()).WithParent(n)
+                                                            : (ITypedNode)AbstractAstNode.Empty;
         });
 
         public override AbstractAstNode VisitProcedureCall([NotNull] BlaiseParser.ProcedureCallContext context) => MakeCallNode(context.call(), false);
@@ -254,7 +272,7 @@ namespace Blaise2.Ast
             {
                 return Build<BooleanNode>(n =>
                 {
-                    n.BoolValue = context.BOOLEAN().GetText() == "true" ? true : false;
+                    n.BoolValue = context.BOOLEAN().GetText() == "true";
                 });
             }
             else if (context.CHAR() is not null)
@@ -273,7 +291,7 @@ namespace Blaise2.Ast
             }
             else
             {
-                throw new InvalidOperationException($"Invalid Char Atom {context.GetText()}");
+                throw new InvalidOperationException($"Invalid Atom {context.GetText()}");
             }
         }
 

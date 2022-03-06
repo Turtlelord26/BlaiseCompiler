@@ -43,6 +43,7 @@ stat
 	| ifThenElse
 	| loop
 	| switchSt
+	| ret
 	| block;
 
 block
@@ -66,10 +67,11 @@ routines
 	)+;
 
 procedure
-	: 'procedure' IDENTIFIER LPAREN paramsList? RPAREN SEMI varBlock? stat SEMI;
+	: 'procedure' IDENTIFIER LPAREN paramsList? RPAREN SEMI varBlock? routines? stat SEMI;
 
 function
-	: 'function' IDENTIFIER LPAREN paramsList? RPAREN ':' typeExpr SEMI varBlock? stat SEMI;
+	: 'function' IDENTIFIER LPAREN paramsList? RPAREN ':' typeExpr SEMI varBlock? routines? stat
+		SEMI;
 
 paramsList
 	: var += varDecl (
@@ -77,8 +79,8 @@ paramsList
 	)*;
 
 ifThenElse
-	: 'if' condition = expression 'then' thenSt = stat SEMI (
-		'else' elseSt = stat SEMI
+	: 'if' condition = expression 'then' thenSt = stat (
+		SEMI 'else' elseSt = stat
 	)?;
 
 loop
@@ -87,13 +89,13 @@ loop
 	| repeatUntil;
 
 whileDo
-	: 'while' condition = expression 'do' st = stat SEMI;
+	: 'while' condition = expression 'do' st = stat;
 
 forDo
 	: 'for' init = assignment direction = (
 		'downto'
 		| 'to'
-	) limit = expression 'do' st = stat SEMI;
+	) limit = expression 'do' st = stat;
 
 repeatUntil
 	: 'repeat' (
@@ -104,6 +106,9 @@ switchSt
 	: 'case' LPAREN on = expression RPAREN 'of' switchCase+ (
 		'else' defaultCase = stat
 	) 'end';
+
+ret
+	: 'return' expression?;
 
 switchCase
 	: alt = switchAtom ':' st = stat SEMI;
