@@ -114,7 +114,7 @@ namespace Blaise2.Ast
             });
         }
 
-        public override AbstractAstNode VisitLoop([Antlr4.Runtime.Misc.NotNull] BlaiseParser.LoopContext context)
+        public override AbstractAstNode VisitLoop([NotNull] BlaiseParser.LoopContext context)
         {
             if (context.whileDo() is not null)
             {
