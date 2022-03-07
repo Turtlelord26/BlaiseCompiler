@@ -11,11 +11,31 @@ namespace Blaise2.Ast
 
         public static bool EvaluateAst(AbstractAstNode node) => Evaluate((dynamic)node);
 
-        private static bool Evaluate(ProgramNode node) => ContainsNoDuplicateVariables(node.VarDecls)
-                                                        & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
-                                                        & node.Procedures.Aggregate(true, (valid, next) => valid & Evaluate(next))
-                                                        & node.Functions.Aggregate(true, (valid, next) => valid & Evaluate(next))
-                                                        & Evaluate((dynamic)node.Stat);
+        private static bool Evaluate(ProgramNode node)
+        {
+            var valid = node.VarDecls.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                        & ContainsNoDuplicateVariables(node.VarDecls)
+                        & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
+                        & node.Procedures.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                        & node.Functions.Aggregate(true, (valid, next) => valid & Evaluate(next))
+                        & Evaluate((dynamic)node.Stat);
+            if (BlaiseKeywords.IsKeyword(node.Identifier))
+            {
+                Errors.Append($"{node.Identifier} is a reserved word and cannot be used as a program identifier.");
+                return false;
+            }
+            return valid;
+        }
+
+        private static bool Evaluate(VarDeclNode node)
+        {
+            if (BlaiseKeywords.IsKeyword(node.Identifier))
+            {
+                Errors.Append($"{node.Identifier} is a reserved word and cannot be used as a variable identifier.");
+                return false;
+            }
+            return true;
+        }
 
         private static bool Evaluate(BlockNode node) => node.Stats.Aggregate(true, (valid, next) => valid & Evaluate((dynamic)next));
 
@@ -47,6 +67,11 @@ namespace Blaise2.Ast
                 & node.Procedures.Aggregate(true, (valid, next) => valid & Evaluate(next))
                 & node.Functions.Aggregate(true, (valid, next) => valid & Evaluate(next))
                 & Evaluate((dynamic)node.Stat);
+            if (BlaiseKeywords.IsKeyword(node.Identifier))
+            {
+                Errors.Append($"{node.Identifier} is a reserved word and cannot be used as a function identifier.");
+                valid = false;
+            }
             if (FunctionReturnEvaluator.Visit(node))
             {
                 return valid;
