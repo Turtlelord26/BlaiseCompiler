@@ -82,6 +82,16 @@ Term 16: 987
 Term 17: 1597
 Term 18: 2584
 Term 19: 4181" };
+
+            yield return new object[] { "Can do basic logical ops", @"
+                program Logic;
+                begin
+                    write( ! 3 < 2 & 1 <> 2 );
+                    write(' ');
+                    write( false | 3.14 = 3.141592653589793238462643383279 & true );
+                end.
+            ",
+            "True False" };
         }
 
         public string GetDisplayName(MethodInfo methodInfo, object[] data)

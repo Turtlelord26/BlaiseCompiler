@@ -7,14 +7,13 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
-                program Printing;
-
-                var x : integer;
-
+                program Logic;
                 begin
-                    x := 0;
-                    if x = 0 then write(true);
-                end.");
+                    write( ! 3 < 2 & 1 <> 2 );
+                    write(' ');
+                    write( false | 3.14 = 3.141592653589793238462643383279 & true );
+                end.
+            ");
         }
 
         static void Try(string input)

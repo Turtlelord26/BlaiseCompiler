@@ -89,20 +89,20 @@ namespace Blaise2
             Treewalk((dynamic)node.Right, dot);
         }
 
-        /*private void Treewalk(LogicalOperatorNode node, string parent)
+        private void Treewalk(LogicalOpNode node, string parent)
         {
             var label = $"LogicalOperator\n{node.Operator}";
             var dot = WriteNewNodeAndParentEdge(parent, label);
-            Treewalk((dynamic)node.LeftExpr, dot);
-            Treewalk((dynamic)node.RightExpr, dot);
+            Treewalk((dynamic)node.Left, dot);
+            Treewalk((dynamic)node.Right, dot);
         }
 
-        private void Treewalk(NotOperatorNode node, string parent)
+        private void Treewalk(NotOpNode node, string parent)
         {
             var label = "Not";
             var dot = WriteNewNodeAndParentEdge(parent, label);
-            Treewalk((dynamic)node.Expr, dot);
-        }*/
+            Treewalk((dynamic)node.Expression, dot);
+        }
 
         private void Treewalk(FunctionCallNode node, string parent)
         {

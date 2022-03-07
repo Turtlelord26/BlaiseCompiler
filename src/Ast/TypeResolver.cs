@@ -15,29 +15,43 @@ namespace Blaise2.Ast
             }
             node.LeftType = ResolveType((dynamic)node.Left);
             node.RightType = ResolveType((dynamic)node.Right);
-            var thisType = PromoteBinaryOp(node.LeftType, node.RightType, node.Operator);
-            node.ExprType = thisType;
-            return thisType;
+            node.ExprType = PromoteBinaryOp(node.LeftType, node.RightType, node.Operator);
+            return node.ExprType;
         }
 
         public static BlaiseType ResolveType(BooleanOpNode node)
         {
+            if (node.ExprType is not null)
+            {
+                return node.ExprType;
+            }
             node.LeftType = ResolveType((dynamic)node.Left);
             node.RightType = ResolveType((dynamic)node.Right);
-            return ValidateBooleanOp(node.LeftType, node.RightType);
+            node.ExprType = ValidateBooleanOp(node.LeftType, node.RightType);
+            return node.ExprType;
         }
 
-        public static BlaiseType ResolveType(FunctionCallNode node) => node.CallTarget.ReturnType;
-
-        /*public static BlaiseType ResolveType(LogicalOpNode node) => new()
+        public static BlaiseType ResolveType(LogicalOpNode node)
         {
-            BasicType = BOOLEAN
-        };
+            if (node.ExprType is not null)
+            {
+                return node.ExprType;
+            }
+            node.LeftType = ResolveType((dynamic)node.Left);
+            node.RightType = ResolveType((dynamic)node.Right);
+            node.ExprType = new()
+            {
+                BasicType = BOOLEAN
+            };
+            return node.ExprType;
+        }
 
         public static BlaiseType ResolveType(NotOpNode node) => new()
         {
             BasicType = BOOLEAN
-        };*/
+        };
+
+        public static BlaiseType ResolveType(FunctionCallNode node) => node.CallTarget.ReturnType;
 
         public static BlaiseType ResolveType(VarRefNode node) => node.VarInfo?.VarDecl.BlaiseType ?? BlaiseType.ErrorType;
 

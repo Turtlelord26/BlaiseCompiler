@@ -62,6 +62,13 @@ namespace Blaise2.Emitters
     cgt
     ldc.i4.0
     ceq",
+            And => @"
+    and",
+            Or => @"
+    or",
+            Not => @"
+    ldc.i4.0
+    ceq",
             _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
         };
 

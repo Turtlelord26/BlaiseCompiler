@@ -304,6 +304,16 @@ namespace Blaise2.Emitters
             return output + ToCilOperator(node.Operator);
         }
 
+        public string Visit(LogicalOpNode node)
+        {
+            return $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
+        }
+
+        public string Visit(NotOpNode node)
+        {
+            return @$"{Visit((dynamic)node.Expression)}{ToCilOperator(BlaiseOperator.Not)}";
+        }
+
         public string Visit(AbstractAstNode node) => node.IsEmpty() ? "" : throw new InvalidOperationException($"Invalid node type {node.Type}");
 
         private string MakeLabel() => $"Label{labelNum++}";

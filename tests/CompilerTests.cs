@@ -198,7 +198,7 @@ namespace Blaise2.Tests
             var result = compiler.ExecuteObjectCode();
 
             // Assert
-            Assert.AreEqual("1", result);
+            Assert.AreEqual("True", result);
         }
 
         [TestMethod]
@@ -223,7 +223,7 @@ namespace Blaise2.Tests
             var result = compiler.ExecuteObjectCode();
 
             // Assert
-            Assert.AreEqual("1", result);
+            Assert.AreEqual("True", result);
         }
 
         [TestMethod]

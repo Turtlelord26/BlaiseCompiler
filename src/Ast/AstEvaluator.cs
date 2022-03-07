@@ -139,48 +139,52 @@ namespace Blaise2.Ast
         private static bool Evaluate(BinaryOpNode node)
         {
             var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
-            if (TypeResolver.ResolveType(node).IsValid())
-            {
-                //Collapse tree if possible
-                return valid;
-            }
-            else
+            if (!TypeResolver.ResolveType(node).IsValid())
             {
                 Errors.Append($"Cannot apply operator {node.Operator} to types {(node.Left).GetExprType()}, {(node.Right).GetExprType()}");
                 return false;
             }
-
+            //Collapse tree if possible
+            return valid;
         }
 
         private static bool Evaluate(BooleanOpNode node)
         {
             var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
-            if (TypeResolver.ResolveType(node).IsValid())
-            {
-                //Collapse tree if possible
-                return valid;
-            }
-            else
+            if (!TypeResolver.ResolveType(node).IsValid())
             {
                 Errors.Append($"Cannot apply operator {node.Operator} to types {(node.Left).GetExprType()}, {(node.Right).GetExprType()}");
                 return false;
             }
-        }
-
-        /*private static bool Evaluate(LogicalOperatorNode node)
-        {
-            var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
-            var leftType = ResolveType(node.Left);
-            var rightType = ResolveType(node.Left);
-            valid = leftType.BasicType is BOOLEAN
-                  & rightType.BasicType is BOOLEAN;
             //Collapse tree if possible
             return valid;
         }
 
-        private static bool Evaluate(NotOperatorNode node) => Evaluate(node.Expr)
-                                                            & ResolveType(node.Expr).BasicType == BOOLEAN;
-            //Collapse tree if possible*/
+        private static bool Evaluate(LogicalOpNode node)
+        {
+            var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
+            if (!TypeResolver.ResolveType(node).IsValid()
+                | node.LeftType.BasicType is not BOOLEAN
+                | node.RightType.BasicType is not BOOLEAN)
+            {
+                Errors.Append($"Could not resolve LogicalOperatorNode operands to booleans. Got {node.LeftType} {node.Operator} {node.RightType}.");
+                valid = false;
+            }
+            //Collapse tree if possible
+            return valid;
+        }
+
+        private static bool Evaluate(NotOpNode node)
+        {
+            var valid = Evaluate((dynamic)node.Expression);
+            if (TypeResolver.ResolveType((dynamic)node.Expression).BasicType != BOOLEAN)
+            {
+                Errors.Append($"Could not resolve Not operand to a boolean. Got {node.Expression.GetExprType()}.");
+                return false;
+            }
+            //Collapse tree if possible
+            return valid;
+        }
 
         private static bool Evaluate(FunctionCallNode node)
         {

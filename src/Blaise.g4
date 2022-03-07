@@ -114,7 +114,8 @@ switchCase
 	: alt = switchAtom ':' st = stat SEMI;
 
 expression
-	: left = expression binop = POW right = expression
+	: LPAREN inner = expression RPAREN
+	| left = expression binop = POW right = expression
 	| left = expression binop = (
 		TIMES
 		| DIV
@@ -124,7 +125,9 @@ expression
 		| MINUS
 	) right = expression
 	| left = expression boolop = COMP right = expression
-	| LPAREN inner = expression RPAREN
+	| NOT negated = expression
+	| left = expression logop = AND right = expression
+	| left = expression logop = OR right = expression
 	| functionCall
 	| numericAtom
 	| atom;
@@ -176,26 +179,21 @@ KARRAY
 	: 'array';
 KSTRING
 	: 'string';
-
 INTEGER
 	: INTEGERPART;
 REAL
 	: INTEGERPART '.' DECIMALPART;
-
 STRING
 	: '\'' (
 		.*?
 	) '\'';
-
 CHAR
 	: '\'' . '\'';
 BOOLEAN
 	: 'true'
 	| 'false';
-
 IDENTIFIER
 	: VALID_ID_START VALID_ID_CHAR*;
-
 LPAREN
 	: '(';
 RPAREN
@@ -217,6 +215,12 @@ COMP
 	| LTE;
 POW
 	: '^';
+AND
+	: '&';
+OR
+	: '|';
+NOT
+	: '!';
 SEMI
 	: ';';
 

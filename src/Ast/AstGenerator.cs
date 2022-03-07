@@ -220,6 +220,22 @@ namespace Blaise2.Ast
                     n.Operator = OpMap[context.boolop.Text];
                 });
             }
+            else if (context.logop != null)
+            {
+                return Build<LogicalOpNode>(n =>
+                {
+                    n.Left = (ITypedNode)VisitExpression(context.left).WithParent(n);
+                    n.Right = (ITypedNode)VisitExpression(context.right).WithParent(n);
+                    n.Operator = OpMap[context.logop.Text];
+                });
+            }
+            else if (context.negated != null)
+            {
+                return Build<NotOpNode>(n =>
+                {
+                    n.Expression = (ITypedNode)VisitExpression(context.negated).WithParent(n);
+                });
+            }
             else if (context.inner is not null)
             {
                 return VisitExpression(context.inner);

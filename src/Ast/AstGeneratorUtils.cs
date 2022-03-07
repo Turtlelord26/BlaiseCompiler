@@ -19,10 +19,10 @@ namespace Blaise2.Ast
             { ">", Gt },
             { ">=", Gte },
             { "=", Eq },
-            { "<>", Ne }
-            //{ "and", And },
-            //{ "or", Or },
-            //{ "not", Not }
+            { "<>", Ne },
+            { "&", And },
+            { "|", Or },
+            { "!", Not }
         };
 
         private static BlaiseTypeEnum GetBasicBlaiseType(string t)

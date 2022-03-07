@@ -11,7 +11,7 @@ namespace Blaise2.Emitters
             return bt.BasicType switch
             {
                 BlaiseTypeEnum.CHAR => "char",
-                BlaiseTypeEnum.BOOLEAN => "int32",
+                BlaiseTypeEnum.BOOLEAN => "bool",
                 BlaiseTypeEnum.INTEGER => "int32",
                 BlaiseTypeEnum.REAL => "float64",
                 BlaiseTypeEnum.STRING => "string",

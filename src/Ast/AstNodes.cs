@@ -107,18 +107,24 @@ namespace Blaise2.Ast
         public BlaiseType LeftType { get; set; }
         public BlaiseType RightType { get; set; }
 
-        public BlaiseType GetExprType() => ExprType;
+        public virtual BlaiseType GetExprType() => ExprType;
     }
 
-    public class BooleanOpNode : AbstractAstNode, ITypedNode
+    public class BooleanOpNode : BinaryOpNode
     {
-        public ITypedNode Left { get; set; }
-        public ITypedNode Right { get; set; }
-        public BlaiseOperator Operator { get; set; }
-        public BlaiseType LeftType { get; set; }
-        public BlaiseType RightType { get; set; }
+        public override BlaiseType GetExprType() => new()
+        {
+            BasicType = BOOLEAN
+        };
+    }
 
-        public BlaiseType GetExprType() => new()
+    public class LogicalOpNode : BooleanOpNode { }
+
+    public class NotOpNode : AbstractAstNode, ITypedNode
+    {
+        public ITypedNode Expression { get; set; }
+
+        public BlaiseType GetExprType() => new BlaiseType()
         {
             BasicType = BOOLEAN
         };
