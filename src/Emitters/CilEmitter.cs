@@ -2,8 +2,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Blaise2.Ast;
-using static Blaise2.Ast.AstNodeExtensions;
-using static Blaise2.Ast.BlaiseTypeEnum;
 using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.VarType;
 
@@ -250,7 +248,7 @@ namespace Blaise2.Emitters
         public string Visit(BooleanNode node) => @$"
     ldc.i4.{(node.BoolValue ? 1 : 0)}";
 
-        public string Bisit(CharNode node) => @$"
+        public string Visit(CharNode node) => @$"
     ldc.i4.s {(int)node.CharValue}";
 
         public string Visit(StringNode node) => @$"

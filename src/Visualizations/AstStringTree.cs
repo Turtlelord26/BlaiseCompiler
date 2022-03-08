@@ -57,6 +57,11 @@ namespace Blaise2.Visualizations
             return $"(assign {node.Identifier} " + Visit((dynamic)node.Expression) + ")";
         }
 
+        public override string Visit(ReturnNode node)
+        {
+            return $"(return {Visit((dynamic)node.Expression)}";
+        }
+
         public override string Visit(FunctionCallNode node)
         {
             return $"(invoke {node.Identifier} " + string.Join(" ", node.Arguments.Select(e => Visit((dynamic)e))) + ")";
@@ -72,9 +77,19 @@ namespace Blaise2.Visualizations
             return node.RealValue.ToString();
         }
 
+        public override string Visit(BooleanNode node)
+        {
+            return node.BoolValue.ToString();
+        }
+
+        public override string Visit(CharNode node)
+        {
+            return node.CharValue.ToString();
+        }
+
         public override string Visit(StringNode node)
         {
-            return $"\"{node.StringValue}\"";
+            return node.StringValue;
         }
 
         public override string Visit(VarRefNode node)
@@ -90,6 +105,16 @@ namespace Blaise2.Visualizations
         public override string Visit(BooleanOpNode node)
         {
             return $"(binop {node.Operator} {Visit((dynamic)node.Left)} {Visit((dynamic)node.Right)}";
+        }
+
+        public override string Visit(LogicalOpNode node)
+        {
+            return $"(binop {node.Operator} {Visit((dynamic)node.Left)} {Visit((dynamic)node.Right)}";
+        }
+
+        public override string Visit(NotOpNode node)
+        {
+            return $"(not {Visit((dynamic)node.Expression)}";
         }
     }
 }

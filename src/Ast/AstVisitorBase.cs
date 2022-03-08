@@ -34,6 +34,11 @@ namespace Blaise2.Ast
             return default;
         }
 
+        public virtual R Visit(ReturnNode node)
+        {
+            return default;
+        }
+
         public virtual R Visit(FunctionCallNode node)
         {
             return default;
@@ -45,6 +50,16 @@ namespace Blaise2.Ast
         }
 
         public virtual R Visit(RealNode node)
+        {
+            return default;
+        }
+
+        public virtual R Visit(BooleanNode node)
+        {
+            return default;
+        }
+
+        public virtual R Visit(CharNode node)
         {
             return default;
         }
@@ -65,6 +80,16 @@ namespace Blaise2.Ast
         }
 
         public virtual R Visit(BooleanOpNode node)
+        {
+            return default;
+        }
+
+        public virtual R Visit(LogicalOpNode node)
+        {
+            return default;
+        }
+
+        public virtual R Visit(NotOpNode node)
         {
             return default;
         }

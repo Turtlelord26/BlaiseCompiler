@@ -97,7 +97,7 @@ namespace Blaise2.Ast
         {
             var valid = Evaluate((dynamic)node.Condition)
                       & Evaluate((dynamic)node.Body);
-            if ((node.Condition as ITypedNode).GetExprType().BasicType != BOOLEAN)
+            if ((node.Condition as AbstractTypedAstNode).GetExprType().BasicType != BOOLEAN)
             {
                 Errors.Append("Cannot resolve loop condition to a bool.");
                 return false;
@@ -169,7 +169,7 @@ namespace Blaise2.Ast
                 Errors.Append($"Cannot apply operator {node.Operator} to types {(node.Left).GetExprType()}, {(node.Right).GetExprType()}");
                 return false;
             }
-            //Collapse tree if possible
+            ExpressionEvaluator.Visit(node);
             return valid;
         }
 
@@ -181,7 +181,7 @@ namespace Blaise2.Ast
                 Errors.Append($"Cannot apply operator {node.Operator} to types {(node.Left).GetExprType()}, {(node.Right).GetExprType()}");
                 return false;
             }
-            //Collapse tree if possible
+            ExpressionEvaluator.Visit(node);
             return valid;
         }
 
@@ -195,7 +195,7 @@ namespace Blaise2.Ast
                 Errors.Append($"Could not resolve LogicalOperatorNode operands to booleans. Got {node.LeftType} {node.Operator} {node.RightType}.");
                 valid = false;
             }
-            //Collapse tree if possible
+            ExpressionEvaluator.Visit(node);
             return valid;
         }
 
@@ -207,7 +207,7 @@ namespace Blaise2.Ast
                 Errors.Append($"Could not resolve Not operand to a boolean. Got {node.Expression.GetExprType()}.");
                 return false;
             }
-            //Collapse tree if possible
+            ExpressionEvaluator.Visit(node);
             return valid;
         }
 

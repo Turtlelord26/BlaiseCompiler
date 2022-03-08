@@ -13,10 +13,15 @@ namespace Blaise2.Ast
 
         public bool IsEmpty() => Equals(Empty);
 
-        private class EmptyNode : AbstractAstNode, ITypedNode
+        private class EmptyNode : AbstractTypedAstNode
         {
-            public BlaiseType GetExprType() => BlaiseType.ErrorType;
+            public override BlaiseType GetExprType() => BlaiseType.ErrorType;
         }
+    }
+
+    public abstract class AbstractTypedAstNode : AbstractAstNode
+    {
+        public abstract BlaiseType GetExprType();
     }
 
     public partial class ProgramNode : AbstractAstNode, IVarOwner
@@ -49,20 +54,20 @@ namespace Blaise2.Ast
 
     public class WriteNode : AbstractAstNode
     {
-        public ITypedNode Expression { get; set; }
+        public AbstractTypedAstNode Expression { get; set; }
         public bool WriteNewline { get; set; }
     }
 
     public class AssignmentNode : AbstractAstNode
     {
         public string Identifier { get; set; }
-        public ITypedNode Expression { get; set; }
+        public AbstractTypedAstNode Expression { get; set; }
         public SymbolInfo VarInfo { get; set; }
     }
 
     public class IfNode : AbstractAstNode
     {
-        public ITypedNode Condition { get; set; }
+        public AbstractTypedAstNode Condition { get; set; }
         public AbstractAstNode ThenStat { get; set; }
         public AbstractAstNode ElseStat { get; set; }
     }
@@ -70,7 +75,7 @@ namespace Blaise2.Ast
     public class LoopNode : AbstractAstNode
     {
         public LoopType LoopType { get; set; }
-        public ITypedNode Condition { get; set; }
+        public AbstractTypedAstNode Condition { get; set; }
         public AbstractAstNode Body { get; set; }
     }
 
@@ -82,32 +87,32 @@ namespace Blaise2.Ast
 
     public class SwitchNode : AbstractAstNode
     {
-        public ITypedNode Input { get; set; }
+        public AbstractTypedAstNode Input { get; set; }
         public List<SwitchCaseNode> Cases { get; set; }
         public AbstractAstNode Default { get; set; }
     }
 
     public class SwitchCaseNode : AbstractAstNode
     {
-        public ITypedNode Case { get; set; }
+        public AbstractTypedAstNode Case { get; set; }
         public AbstractAstNode Stat { get; set; }
     }
 
     public class ReturnNode : AbstractAstNode
     {
-        public ITypedNode Expression { get; set; }
+        public AbstractTypedAstNode Expression { get; set; }
     }
 
-    public class BinaryOpNode : AbstractAstNode, ITypedNode
+    public class BinaryOpNode : AbstractTypedAstNode
     {
-        public ITypedNode Left { get; set; }
-        public ITypedNode Right { get; set; }
+        public AbstractTypedAstNode Left { get; set; }
+        public AbstractTypedAstNode Right { get; set; }
         public BlaiseOperator Operator { get; set; }
         public BlaiseType ExprType { get; set; }
         public BlaiseType LeftType { get; set; }
         public BlaiseType RightType { get; set; }
 
-        public virtual BlaiseType GetExprType() => ExprType;
+        public override BlaiseType GetExprType() => ExprType;
     }
 
     public class BooleanOpNode : BinaryOpNode
@@ -120,79 +125,89 @@ namespace Blaise2.Ast
 
     public class LogicalOpNode : BooleanOpNode { }
 
-    public class NotOpNode : AbstractAstNode, ITypedNode
+    public class NotOpNode : AbstractTypedAstNode
     {
-        public ITypedNode Expression { get; set; }
+        public AbstractTypedAstNode Expression { get; set; }
 
-        public BlaiseType GetExprType() => new BlaiseType()
+        public override BlaiseType GetExprType() => new BlaiseType()
         {
             BasicType = BOOLEAN
         };
     }
 
-    public class FunctionCallNode : AbstractAstNode, ITypedNode
+    public class FunctionCallNode : AbstractTypedAstNode
     {
         public string Identifier { get; set; }
         public bool IsFunction { get; set; }
-        public List<ITypedNode> Arguments { get; set; }
+        public List<AbstractTypedAstNode> Arguments { get; set; }
         public FunctionNode CallTarget { get; set; }
 
-        public BlaiseType GetExprType() => CallTarget.ReturnType;
+        public override BlaiseType GetExprType() => CallTarget.ReturnType;
     }
 
-    public class IntegerNode : AbstractAstNode, ITypedNode
+    public class IntegerNode : AbstractTypedAstNode, IConstantNode
     {
         public int IntValue { get; set; }
 
-        public BlaiseType GetExprType() => new()
+        public dynamic GetValue() => IntValue;
+
+        public override BlaiseType GetExprType() => new()
         {
             BasicType = INTEGER
         };
     }
 
-    public class RealNode : AbstractAstNode, ITypedNode
+    public class RealNode : AbstractTypedAstNode, IConstantNode
     {
         public double RealValue { get; set; }
 
-        public BlaiseType GetExprType() => new()
+        public dynamic GetValue() => RealValue;
+
+        public override BlaiseType GetExprType() => new()
         {
             BasicType = REAL
         };
     }
 
-    public class VarRefNode : AbstractAstNode, ITypedNode
+    public class VarRefNode : AbstractTypedAstNode
     {
         public string Identifier { get; set; }
         public SymbolInfo VarInfo { get; set; }
 
-        public BlaiseType GetExprType() => VarInfo?.VarDecl.BlaiseType ?? BlaiseType.ErrorType;
+        public override BlaiseType GetExprType() => VarInfo?.VarDecl.BlaiseType ?? BlaiseType.ErrorType;
     }
 
-    public class BooleanNode : AbstractAstNode, ITypedNode
+    public class BooleanNode : AbstractTypedAstNode, IConstantNode
     {
         public bool BoolValue { get; set; }
 
-        public BlaiseType GetExprType() => new()
+        public dynamic GetValue() => BoolValue;
+
+        public override BlaiseType GetExprType() => new()
         {
             BasicType = BOOLEAN
         };
     }
 
-    public class CharNode : AbstractAstNode, ITypedNode
+    public class CharNode : AbstractTypedAstNode, IConstantNode
     {
         public char CharValue { get; set; }
 
-        public BlaiseType GetExprType() => new()
+        public dynamic GetValue() => CharValue;
+
+        public override BlaiseType GetExprType() => new()
         {
             BasicType = CHAR
         };
     }
 
-    public class StringNode : AbstractAstNode, ITypedNode
+    public class StringNode : AbstractTypedAstNode, IConstantNode
     {
         public string StringValue { get; set; }
 
-        public BlaiseType GetExprType() => new()
+        public dynamic GetValue() => StringValue;
+
+        public override BlaiseType GetExprType() => new()
         {
             BasicType = STRING
         };

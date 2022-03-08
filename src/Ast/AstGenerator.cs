@@ -85,13 +85,13 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitWrite([NotNull] BlaiseParser.WriteContext context) => Build<WriteNode>(n =>
         {
             n.WriteNewline = false;
-            n.Expression = (ITypedNode)VisitExpression(context.expression()).WithParent(n);
+            n.Expression = (AbstractTypedAstNode)VisitExpression(context.expression()).WithParent(n);
         });
 
         public override AbstractAstNode VisitWriteln([NotNull] BlaiseParser.WritelnContext context) => Build<WriteNode>(n =>
         {
             n.WriteNewline = true;
-            n.Expression = (ITypedNode)VisitExpression(context.expression()).WithParent(n);
+            n.Expression = (AbstractTypedAstNode)VisitExpression(context.expression()).WithParent(n);
         });
 
         public override AbstractAstNode VisitBlock([NotNull] BlaiseParser.BlockContext context) => MakeBlock(context._st);
@@ -100,7 +100,7 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitAssignment([NotNull] BlaiseParser.AssignmentContext context) => Build<AssignmentNode>(n =>
         {
             n.Identifier = context.IDENTIFIER().GetText();
-            n.Expression = (ITypedNode)VisitExpression(context.expression()).WithParent(n);
+            n.Expression = (AbstractTypedAstNode)VisitExpression(context.expression()).WithParent(n);
         });
 
         public override AbstractAstNode VisitIfThenElse([NotNull] BlaiseParser.IfThenElseContext context)
@@ -108,7 +108,7 @@ namespace Blaise2.Ast
             var elseStatContext = context.elseSt;
             return Build<IfNode>(i =>
             {
-                i.Condition = (ITypedNode)VisitExpression(context.condition).WithParent(i);
+                i.Condition = (AbstractTypedAstNode)VisitExpression(context.condition).WithParent(i);
                 i.ThenStat = VisitStat(context.thenSt).WithParent(i);
                 i.ElseStat = elseStatContext is not null ? VisitStat(elseStatContext).WithParent(i) : AbstractAstNode.Empty;
             });
@@ -138,7 +138,7 @@ namespace Blaise2.Ast
         {
             return Build<SwitchNode>(s =>
             {
-                s.Input = (ITypedNode)VisitExpression(context.on).WithParent(s);
+                s.Input = (AbstractTypedAstNode)VisitExpression(context.on).WithParent(s);
                 s.Cases = context.switchCase().Select(c => (SwitchCaseNode)VisitSwitchCase(c).WithParent(s)).ToList();
                 s.Default = context.defaultCase is not null ? VisitStat(context.defaultCase).WithParent(s) : AbstractAstNode.Empty;
             });
@@ -148,7 +148,7 @@ namespace Blaise2.Ast
         {
             return Build<SwitchCaseNode>(c =>
             {
-                c.Case = (ITypedNode)VisitSwitchAtom(context.alt).WithParent(c);
+                c.Case = (AbstractTypedAstNode)VisitSwitchAtom(context.alt).WithParent(c);
                 c.Stat = VisitStat(context.st).WithParent(c);
             });
         }
@@ -156,7 +156,7 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitWhileDo([NotNull] BlaiseParser.WhileDoContext context) => Build<LoopNode>(n =>
         {
             n.LoopType = While;
-            n.Condition = (ITypedNode)VisitExpression(context.condition).WithParent(n);
+            n.Condition = (AbstractTypedAstNode)VisitExpression(context.condition).WithParent(n);
             n.Body = VisitStat(context.st).WithParent(n);
         });
 
@@ -177,7 +177,7 @@ namespace Blaise2.Ast
             n.Condition = Build<BooleanOpNode>(c =>
             {
                 c.Left = Build<VarRefNode>(v => v.Identifier = n.Assignment.Identifier).WithParent(c);
-                c.Right = (ITypedNode)VisitExpression(context.limit).WithParent(c);
+                c.Right = (AbstractTypedAstNode)VisitExpression(context.limit).WithParent(c);
                 c.Operator = context.direction.Text.Equals("downto") ? BlaiseOperator.Gt : BlaiseOperator.Lt;
             }).WithParent(n);
             n.Body = VisitStat(context.st).WithParent(n);
@@ -186,14 +186,14 @@ namespace Blaise2.Ast
         public override AbstractAstNode VisitRepeatUntil([NotNull] BlaiseParser.RepeatUntilContext context) => Build<LoopNode>(n =>
         {
             n.LoopType = Until;
-            n.Condition = (ITypedNode)VisitExpression(context.condition).WithParent(n);
+            n.Condition = (AbstractTypedAstNode)VisitExpression(context.condition).WithParent(n);
             n.Body = MakeBlock(context._st).WithParent(n);
         });
 
         public override AbstractAstNode VisitRet([NotNull] BlaiseParser.RetContext context) => Build<ReturnNode>(n =>
         {
-            n.Expression = context.expression() is not null ? (ITypedNode)VisitExpression(context.expression()).WithParent(n)
-                                                            : (ITypedNode)AbstractAstNode.Empty;
+            n.Expression = context.expression() is not null ? (AbstractTypedAstNode)VisitExpression(context.expression()).WithParent(n)
+                                                            : (AbstractTypedAstNode)AbstractAstNode.Empty;
         });
 
         public override AbstractAstNode VisitProcedureCall([NotNull] BlaiseParser.ProcedureCallContext context) => MakeCallNode(context.call(), false);
@@ -206,8 +206,8 @@ namespace Blaise2.Ast
             {
                 return Build<BinaryOpNode>(n =>
                 {
-                    n.Left = (ITypedNode)VisitExpression(context.left).WithParent(n);
-                    n.Right = (ITypedNode)VisitExpression(context.right).WithParent(n);
+                    n.Left = (AbstractTypedAstNode)VisitExpression(context.left).WithParent(n);
+                    n.Right = (AbstractTypedAstNode)VisitExpression(context.right).WithParent(n);
                     n.Operator = OpMap[context.binop.Text];
                 });
             }
@@ -215,8 +215,8 @@ namespace Blaise2.Ast
             {
                 return Build<BooleanOpNode>(n =>
                 {
-                    n.Left = (ITypedNode)VisitExpression(context.left).WithParent(n);
-                    n.Right = (ITypedNode)VisitExpression(context.right).WithParent(n);
+                    n.Left = (AbstractTypedAstNode)VisitExpression(context.left).WithParent(n);
+                    n.Right = (AbstractTypedAstNode)VisitExpression(context.right).WithParent(n);
                     n.Operator = OpMap[context.boolop.Text];
                 });
             }
@@ -224,8 +224,8 @@ namespace Blaise2.Ast
             {
                 return Build<LogicalOpNode>(n =>
                 {
-                    n.Left = (ITypedNode)VisitExpression(context.left).WithParent(n);
-                    n.Right = (ITypedNode)VisitExpression(context.right).WithParent(n);
+                    n.Left = (AbstractTypedAstNode)VisitExpression(context.left).WithParent(n);
+                    n.Right = (AbstractTypedAstNode)VisitExpression(context.right).WithParent(n);
                     n.Operator = OpMap[context.logop.Text];
                 });
             }
@@ -233,7 +233,7 @@ namespace Blaise2.Ast
             {
                 return Build<NotOpNode>(n =>
                 {
-                    n.Expression = (ITypedNode)VisitExpression(context.negated).WithParent(n);
+                    n.Expression = (AbstractTypedAstNode)VisitExpression(context.negated).WithParent(n);
                 });
             }
             else if (context.inner is not null)
@@ -263,11 +263,11 @@ namespace Blaise2.Ast
             var sign = (context.sign?.Text.Equals("-") ?? false) ? -1 : 1;
             if (context.INTEGER() is not null)
             {
-                return Build<IntegerNode>(n => { n.IntValue = sign * int.Parse(context.INTEGER().GetText()); });
+                return Build<IntegerNode>(n => n.IntValue = sign * int.Parse(context.INTEGER().GetText()));
             }
             else if (context.REAL() is not null)
             {
-                return Build<RealNode>(n => { n.RealValue = sign * double.Parse(context.REAL().GetText()); });
+                return Build<RealNode>(n => n.RealValue = sign * double.Parse(context.REAL().GetText()));
             }
             else
             {
@@ -279,31 +279,19 @@ namespace Blaise2.Ast
         {
             if (context.IDENTIFIER() is not null)
             {
-                return Build<VarRefNode>(n =>
-                {
-                    n.Identifier = context.IDENTIFIER().GetText();
-                });
+                return Build<VarRefNode>(n => n.Identifier = context.IDENTIFIER().GetText());
             }
             else if (context.BOOLEAN() is not null)
             {
-                return Build<BooleanNode>(n =>
-                {
-                    n.BoolValue = context.BOOLEAN().GetText() == "true";
-                });
+                return Build<BooleanNode>(n => n.BoolValue = context.BOOLEAN().GetText() == "true");
             }
             else if (context.CHAR() is not null)
             {
-                return Build<CharNode>(n =>
-                {
-                    n.CharValue = context.CHAR().GetText()[1];
-                });
+                return Build<CharNode>(n => n.CharValue = context.CHAR().GetText()[1]);
             }
             else if (context.STRING() is not null)
             {
-                return Build<StringNode>(n =>
-                {
-                    n.StringValue = context.STRING().GetText()[1..^1];
-                });
+                return Build<StringNode>(n => n.StringValue = context.STRING().GetText()[1..^1]);
             }
             else
             {
@@ -311,29 +299,19 @@ namespace Blaise2.Ast
             }
         }
 
-        private AbstractAstNode MakeBlock([NotNull] IList<BlaiseParser.StatContext> stats)
+        private AbstractAstNode MakeBlock([NotNull] IList<BlaiseParser.StatContext> stats) => stats.Count switch
         {
-            int statCount = stats.Count;
-            if (statCount == 0)
-            {
-                return AbstractAstNode.Empty;
-            }
-            if (statCount == 1)
-            {
-                return VisitStat(stats[0]);
-            }
-            return Build<BlockNode>(n =>
-            {
-                n.Stats = stats.Select(s => VisitStat(s).WithParent(n)).ToList();
-            });
-        }
+            0 => AbstractAstNode.Empty,
+            1 => VisitStat(stats[0]),
+            _ => Build<BlockNode>(n => n.Stats = stats.Select(s => VisitStat(s).WithParent(n)).ToList())
+        };
 
         private AbstractAstNode MakeCallNode([NotNull] BlaiseParser.CallContext context, bool isFunction) => Build<FunctionCallNode>(n =>
         {
             n.Identifier = context.IDENTIFIER().GetText();
             n.IsFunction = isFunction;
-            n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).OfType<ITypedNode>().ToList()
-                          ?? new List<ITypedNode>();
+            n.Arguments = context.argsList()?._args.Select(a => VisitExpression(a).WithParent(n)).OfType<AbstractTypedAstNode>().ToList()
+                          ?? new List<AbstractTypedAstNode>();
         });
     }
 }

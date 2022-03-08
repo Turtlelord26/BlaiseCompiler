@@ -1,5 +1,6 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static Blaise2.Visualizations.VisualizationExtensions;
 
 namespace Blaise2.Tests
 {
@@ -307,6 +308,7 @@ namespace Blaise2.Tests
             Assert.AreEqual("10", result);
         }
 
+
         [TestMethod]
         public void CanFlagIllegalReturns()
         {
@@ -351,7 +353,37 @@ namespace Blaise2.Tests
         }
 
         [TestMethod]
-        public void CanDoFibonacciThreeWays()
+        public void CanFlagFunctionsWithNonreturningPaths()
+        {
+            // Arrange
+            const string src = @"
+                program Printing;
+
+                var b : boolean;
+
+                procedure Oops(n: integer);
+                begin
+                    if b then
+                        write(n);
+                    else
+                        return;
+                end;
+
+                begin
+                    b := false;
+                    write(Oops(10));
+                end.";
+            var compiler = new Compiler();
+
+            // Act and Assert
+            Assert.ThrowsException<InvalidOperationException>(() =>
+            {
+                compiler.Compile(src);
+            });
+        }
+
+        [TestMethod]
+        public void CanDoFibonacciTwoWays()
         {
             // Arrange
             const string src = @"
@@ -403,7 +435,7 @@ namespace Blaise2.Tests
 
 
         [TestMethod]
-        public void CanDoFibonacciButActuallyAllThreeWays()
+        public void CanDoFibonacciThreeWays()
         {
             // Arrange
             const string src = @"
@@ -464,6 +496,38 @@ namespace Blaise2.Tests
 
             // Assert
             Assert.AreEqual("55 55 55", result);
+        }
+
+        [TestMethod]
+        public void CanFoldConstants()
+        {
+            // Arrange
+            const string src = @"
+                program Folding;
+                
+                begin
+                    writeln(1 + 2.0 - 4 * 4 >= 3 / 3 + (4 - 3) ^ 5);
+                    writeln('string' + ' ' + 'constants' + ' ' + 'are' + ' ' + 'folded!');
+                end.
+            ";
+            const string control = @"
+                program Folding;
+                
+                begin
+                    writeln(false);
+                    writeln('string constants are folded!');
+                end.
+            ";
+            var compiler = new Compiler();
+            var controlCompiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            Assert.IsTrue(controlCompiler.Compile(control));
+            var stringTree = compiler.Ast.ToStringTree();
+            var controlTree = controlCompiler.Ast.ToStringTree();
+            // Assert
+            Assert.AreEqual(controlTree, stringTree);
         }
     }
 }
