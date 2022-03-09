@@ -47,7 +47,7 @@ namespace Blaise2.Ast
                 }
                 climber = climber.Parent;
             }
-            throw new InvalidOperationException($"Target not found for function call to {funcName}");
+            return null;
         }
 
         public static bool SignaturesMatch(FunctionCallNode caller, FunctionNode func)

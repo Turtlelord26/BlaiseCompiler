@@ -215,7 +215,7 @@ namespace Blaise2.Ast
         {
             var valid = node.Arguments.Aggregate(true, (valid, next) => Evaluate((dynamic)next));
             node.CallTarget = ReferenceResolver.FindFunction(node, node.Identifier, node.IsFunction);
-            if (node.CallTarget.IsEmpty())
+            if (node.CallTarget is null)
             {
                 Errors.Append("Can't resolve target of function call.");
                 valid = false;

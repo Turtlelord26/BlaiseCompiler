@@ -47,6 +47,21 @@ namespace Blaise2.Tests
                 end.
                 ",
                 typeof(InvalidOperationException) };
+
+            yield return new object[] { "Mispelled function call", @"
+                program Miscall;
+                
+                var x : real;
+
+                procedure PrintInt(y: integer);
+                    write(y);
+                
+                begin
+                    x := 1.5;
+                    PrintReal(x);
+                end.
+                ",
+                typeof(InvalidOperationException) };
         }
 
         public string GetDisplayName(MethodInfo methodInfo, object[] data)
