@@ -84,9 +84,9 @@ ifThenElse
 	)?;
 
 loop
-	: whileDo
-	| forDo
-	| repeatUntil;
+	: whileContext = whileDo
+	| forContext = forDo
+	| untilContext = repeatUntil;
 
 whileDo
 	: 'while' condition = expression 'do' st = stat;
@@ -108,7 +108,7 @@ switchSt
 	) 'end';
 
 ret
-	: 'return' expression?;
+	: 'return' retExpr = expression?;
 
 switchCase
 	: alt = switchAtom ':' st = stat SEMI;
@@ -128,9 +128,9 @@ expression
 	| NOT negated = expression
 	| left = expression logop = AND right = expression
 	| left = expression logop = OR right = expression
-	| functionCall
-	| numericAtom
-	| atom;
+	| funcCall = functionCall
+	| numeric = numericAtom
+	| atomic = atom;
 
 procedureCall
 	: call;
@@ -151,15 +151,15 @@ numericAtom
 		PLUS
 		| MINUS
 	)? (
-		INTEGER
-		| REAL
+		intValue = INTEGER
+		| realValue = REAL
 	);
 
 atom
-	: IDENTIFIER
-	| BOOLEAN
-	| CHAR
-	| STRING;
+	: id = IDENTIFIER
+	| boolValue = BOOLEAN
+	| charValue = CHAR
+	| stringValue = STRING;
 
 switchAtom
 	: numericAtom

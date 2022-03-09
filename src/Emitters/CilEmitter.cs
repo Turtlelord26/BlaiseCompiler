@@ -233,11 +233,8 @@ namespace Blaise2.Emitters
     call instance {returnType} {ProgramName}::{callTarget.Identifier}({paramTypes})";
         }
 
-        public string Visit(ReturnNode node)
-        {
-            return @$"{Visit((dynamic)node.Expression)}
+        public string Visit(ReturnNode node) => @$"{Visit((dynamic)node.Expression)}
     ret";
-        }
 
         public string Visit(IntegerNode node) => @$"
     ldc.i4.s {node.IntValue}";
