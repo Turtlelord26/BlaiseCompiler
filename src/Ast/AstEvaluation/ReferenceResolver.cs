@@ -45,14 +45,6 @@ namespace Blaise2.Ast
                         return match;
                     }
                 }
-                else if (climber is FunctionNode)
-                {
-                    var func = climber as FunctionNode;
-                    if (func.Identifier.Equals(funcName) && SignaturesMatch(caller, func))
-                    {
-                        return func;
-                    }
-                }
                 climber = climber.Parent;
             }
             throw new InvalidOperationException($"Target not found for function call to {funcName}");
