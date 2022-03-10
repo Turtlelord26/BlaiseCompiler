@@ -99,11 +99,8 @@ namespace Blaise2.Ast
         {
             n.Condition = (AbstractTypedAstNode)VisitExpression(context.condition).WithParent(n);
             n.ThenStat = VisitStat(context.thenSt).WithParent(n);
-            n.ElseStat = context switch
-            {
-                { elseSt: not null } => VisitStat(context.elseSt).WithParent(n),
-                _ => AbstractAstNode.Empty
-            };
+            n.ElseStat = context.elseSt is not null ? VisitStat(context.elseSt).WithParent(n)
+                                                    : AbstractAstNode.Empty;
         });
 
         public override AbstractAstNode VisitLoop([NotNull] BlaiseParser.LoopContext context) => context switch
@@ -118,11 +115,8 @@ namespace Blaise2.Ast
         {
             n.Input = (AbstractTypedAstNode)VisitExpression(context.on).WithParent(n);
             n.Cases = context.switchCase().Select(c => (SwitchCaseNode)VisitSwitchCase(c).WithParent(n)).ToList();
-            n.Default = context switch
-            {
-                { defaultCase: not null } => VisitStat(context.defaultCase).WithParent(n),
-                _ => AbstractAstNode.Empty
-            };
+            n.Default = context.defaultCase is not null ? VisitStat(context.defaultCase).WithParent(n)
+                                                        : AbstractAstNode.Empty;
         });
 
         public override AbstractAstNode VisitSwitchCase([NotNull] BlaiseParser.SwitchCaseContext context) => Build<SwitchCaseNode>(n =>
@@ -170,11 +164,8 @@ namespace Blaise2.Ast
         });
 
         public override AbstractAstNode VisitRet([NotNull] BlaiseParser.RetContext context) => Build<ReturnNode>(n =>
-            n.Expression = context switch
-            {
-                { retExpr: not null } => (AbstractTypedAstNode)VisitExpression(context.retExpr).WithParent(n),
-                _ => (AbstractTypedAstNode)AbstractAstNode.Empty
-            });
+            n.Expression = context.retExpr is not null ? (AbstractTypedAstNode)VisitExpression(context.retExpr).WithParent(n)
+                                                       : (AbstractTypedAstNode)AbstractAstNode.Empty);
 
         public override AbstractAstNode VisitProcedureCall([NotNull] BlaiseParser.ProcedureCallContext context) => MakeCallNode(context.call(), false);
 
