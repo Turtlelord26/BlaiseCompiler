@@ -6,48 +6,31 @@ namespace Blaise2.Ast
 {
     public class ReferenceResolver
     {
-        // This function searches up the AST, looking for a node that is
-        // an IVarOwner.  It then asks the IVarOwner if it knows about the
-        // variable in question.  If not, then we continue our search up
-        // the tree.
-        public static SymbolInfo FindVariable(AbstractAstNode climber, string variableName)
+        public static SymbolInfo FindVariable(AbstractAstNode climber, string variableName) => climber switch
         {
-            while (climber is not null)
-            {
-                if (climber is IVarOwner vo)
-                {
-                    var symbolInfo = vo.GetVarByName(variableName);
-                    if (symbolInfo is not null)
-                    {
-                        return symbolInfo;
-                    }
-                }
-                climber = climber.Parent;
-            }
-            return null;
-        }
+            IVarOwner vo when vo.GetVarByName(variableName, out var symbol) is not null => symbol,
+            null => null,
+            _ => FindVariable(climber.Parent, variableName)
+        };
 
-        public static FunctionNode FindFunction(FunctionCallNode caller, string funcName, bool isFunction)
-        {
-            var climber = caller.Parent;
-            while (climber is not null)
+        public static FunctionNode FindFunction(FunctionCallNode caller, string funcName, bool isFunction) =>
+            FindFunction(caller, caller.Parent, funcName, isFunction);
+
+        private static FunctionNode FindFunction(FunctionCallNode caller, AbstractAstNode climber, string funcName, bool isFunction) =>
+            climber switch
             {
-                if (climber is ProgramNode)
-                {
-                    var prog = climber as ProgramNode;
-                    var routines = isFunction ? prog.Functions : prog.Procedures;
-                    var match = routines.Where(r => r.Identifier.Equals(funcName)
-                                                    && SignaturesMatch(caller, r))
-                                        .OfType<FunctionNode>()
-                                        .FirstOrDefault();
-                    if (match is not null)
-                    {
-                        return match;
-                    }
-                }
-                climber = climber.Parent;
-            }
-            return null;
+                ProgramNode prog when FindFunctionByName(caller, prog, funcName, isFunction, out var func) is not null => func,
+                null => null,
+                _ => FindFunction(caller, climber.Parent, funcName, isFunction)
+            };
+
+        private static FunctionNode FindFunctionByName(FunctionCallNode caller, ProgramNode prog, string funcName, bool isFunction, out FunctionNode func)
+        {
+            var routines = isFunction ? prog.Functions : prog.Procedures;
+            func = routines.Where(r => r.Identifier.Equals(funcName) && SignaturesMatch(caller, r))
+                           .OfType<FunctionNode>()
+                           .FirstOrDefault();
+            return func;
         }
 
         public static bool SignaturesMatch(FunctionCallNode caller, FunctionNode func)
