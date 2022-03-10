@@ -8,7 +8,11 @@ namespace Blaise2.Ast
     {
         public static SymbolInfo FindVariable(AbstractAstNode climber, string variableName) => climber switch
         {
-            IVarOwner vo when vo.GetVarByName(variableName, out var symbol) is not null => symbol,
+            IVarOwner vo => vo.GetVarByName(variableName) switch
+            {
+                SymbolInfo info when info.VarDecl.Identifier.Equals(variableName) => info,
+                _ => FindVariable(climber.Parent, variableName)
+            },
             null => null,
             _ => FindVariable(climber.Parent, variableName)
         };
@@ -19,18 +23,21 @@ namespace Blaise2.Ast
         private static FunctionNode FindFunction(FunctionCallNode caller, AbstractAstNode climber, string funcName, bool isFunction) =>
             climber switch
             {
-                ProgramNode prog when FindFunctionByName(caller, prog, funcName, isFunction, out var func) is not null => func,
+                ProgramNode prog => FindFunctionByName(caller, prog, funcName, isFunction) switch
+                {
+                    FunctionNode func when func.Identifier.Equals(funcName) => func,
+                    _ => FindFunction(caller, climber.Parent, funcName, isFunction)
+                },
                 null => null,
                 _ => FindFunction(caller, climber.Parent, funcName, isFunction)
             };
 
-        private static FunctionNode FindFunctionByName(FunctionCallNode caller, ProgramNode prog, string funcName, bool isFunction, out FunctionNode func)
+        private static FunctionNode FindFunctionByName(FunctionCallNode caller, ProgramNode prog, string funcName, bool isFunction)
         {
             var routines = isFunction ? prog.Functions : prog.Procedures;
-            func = routines.Where(r => r.Identifier.Equals(funcName) && SignaturesMatch(caller, r))
+            return routines.Where(r => r.Identifier.Equals(funcName) && SignaturesMatch(caller, r))
                            .OfType<FunctionNode>()
                            .FirstOrDefault();
-            return func;
         }
 
         public static bool SignaturesMatch(FunctionCallNode caller, FunctionNode func)
