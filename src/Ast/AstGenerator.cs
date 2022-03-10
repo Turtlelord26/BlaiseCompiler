@@ -108,9 +108,9 @@ namespace Blaise2.Ast
 
         public override AbstractAstNode VisitLoop([NotNull] BlaiseParser.LoopContext context) => context switch
         {
-            { whileContext: not null } => VisitWhileDo(context.whileDo()),
-            { forContext: not null } => VisitForDo(context.forDo()),
-            { untilContext: not null } => VisitRepeatUntil(context.repeatUntil()),
+            { whileContext: not null } => VisitWhileDo(context.whileContext),
+            { forContext: not null } => VisitForDo(context.forContext),
+            { untilContext: not null } => VisitRepeatUntil(context.untilContext),
             _ => throw new InvalidOperationException($"Invalid Loop {context.GetText()}")
         };
 
