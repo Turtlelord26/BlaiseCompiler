@@ -144,6 +144,7 @@ namespace Blaise2
             var dot = WriteNewNodeAndParentEdge(parent, label);
             Treewalk((dynamic)node.Input, dot);
             node.Cases.ForEach(c => Treewalk((dynamic)c, dot));
+            Treewalk((dynamic)node.Default, dot);
         }
 
         private void Treewalk(SwitchCaseNode node, string parent)
