@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Blaise2.Ast;
+using static Blaise2.Ast.BlaiseTypeEnum;
 using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.VarType;
 
@@ -185,26 +186,48 @@ namespace Blaise2.Emitters
 
         public string Visit(SwitchNode node)
         {
-            //Try reversing the order of function and program emitters. Visit and store the contents, then visit the varblocks.
-            //Use the contents to add more vardeclnodes to the tree as needed. Then catch later in VisitFunction/program.
             //For later: jump table if max-min < 2x num cases, then if not cut the bottom or top case off based on dist from next until
             //  you have a set matching the condition (hybrid emit) or less than half the cases, in which case do if tree.
-            throw new NotImplementedException("Figure out how to add more locals while in the emitter? Or before ... somewhere?");
-            /*var endLabel = MakeLabel();
+            var switchType = node.Input.GetExprType();
+            var hiddenSwitchLocal = MakeAndInjectLocalVar(switchType, node);
+            var endLabel = MakeLabel();
+            var equalityTest = switchType.BasicType switch
+            {
+                STRING => @"
+    call bool [System.Private.CoreLib]System.String::op_Equality(string, string)
+    brtrue.s ",
+                _ => @"
+    beq.s"
+            };
             var branchHandling = "";
             var cases = "";
             var ending = "";
+            var setup = @$"{Visit((dynamic)node.Input)}
+    stloc {hiddenSwitchLocal}";
             foreach (var st in node.Cases)
             {
+                var branchToEnd = st.Stat switch
+                {
+                    ReturnNode ret => "",
+                    BlockNode blk when FunctionReturnEvaluator.Visit(blk) => "",
+                    _ => $"br.s {endLabel}"
+                };
                 var label = MakeLabel();
                 branchHandling += @$"
-    ";
+    ldloc {hiddenSwitchLocal}
+    {Visit((dynamic)st.Case)}
+    {equalityTest} {label}";
                 cases += @$"
-    {label}
+    {label}: nop
     {Visit((dynamic)st.Stat)}
+    {branchToEnd}";
+            }
+            if (node.Default.IsEmpty())
+            {
+                branchHandling += @$"
     br.s {endLabel}";
             }
-            if (!node.Default.IsEmpty())
+            else
             {
                 var defaultLabel = MakeLabel();
                 branchHandling += @$"
@@ -213,14 +236,9 @@ namespace Blaise2.Emitters
     {defaultLabel}: nop
     {Visit((dynamic)node.Default)}";
             }
-            else
-            {
-                branchHandling += @$"
-    br.s {endLabel}";
-            }
             ending += @$"
     {endLabel}: nop";
-            return String.Join(String.Empty, branchHandling, cases, ending);*/
+            return String.Join(String.Empty, setup, branchHandling, cases, ending);
         }
 
         public string Visit(FunctionCallNode node)
@@ -281,7 +299,7 @@ namespace Blaise2.Emitters
             {
                 output += TypeConvert(node.RightType, node.ExprType, node);
             }
-            return output + ToCilOperator(node.Operator);
+            return output + ToCilOperator(node.Operator, node.ExprType);
         }
 
         public string Visit(BooleanOpNode node)
@@ -298,17 +316,17 @@ namespace Blaise2.Emitters
             {
                 output += TypeConvert(node.RightType, node.LeftType, node);
             }
-            return output + ToCilOperator(node.Operator);
+            return output + ToCilOperator(node.Operator, node.GetExprType());
         }
 
         public string Visit(LogicalOpNode node)
         {
-            return $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator)}";
+            return $"{Visit((dynamic)node.Left)}{Visit((dynamic)node.Right)}{ToCilOperator(node.Operator, node.GetExprType())}";
         }
 
         public string Visit(NotOpNode node)
         {
-            return @$"{Visit((dynamic)node.Expression)}{ToCilOperator(BlaiseOperator.Not)}";
+            return @$"{Visit((dynamic)node.Expression)}{ToCilOperator(BlaiseOperator.Not, node.GetExprType())}";
         }
 
         public string Visit(AbstractAstNode node) => node.IsEmpty() ? "" : throw new InvalidOperationException($"Invalid node type {node.Type}");

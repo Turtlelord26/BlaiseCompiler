@@ -1,24 +1,166 @@
 digraph Expr {
   node0 [shape="rect" label="Program
-Logic"]
+Cases"]
   node1 [label="VarDecl
 x : integer"]
   node0 -> node1;
-  node2 [shape="rect" label="Block"]
+  node2 [label="VarDecl
+s : string"]
   node0 -> node2;
-  node3 [shape="rect" label="Write"]
-  node2 -> node3;
-  node4 [label="Boolean
-True"]
+  node3 [shape="rect" label="Procedure
+Run"]
+  node0 -> node3;
+  node4 [label="VarDecl
+x : integer"]
   node3 -> node4;
-  node5 [shape="rect" label="Write"]
-  node2 -> node5;
-  node6 [label="String
- "]
-  node5 -> node6;
-  node7 [shape="rect" label="Write"]
-  node2 -> node7;
-  node8 [label="Boolean
-False"]
+  node5 [label="VarDecl
+s : string"]
+  node3 -> node5;
+  node6 [shape="rect" label="Block"]
+  node3 -> node6;
+  node7 [shape="rect" label="Switch"]
+  node6 -> node7;
+  node8 [label="Identifier
+x"]
   node7 -> node8;
+  node9 [shape="rect" label="Case"]
+  node7 -> node9;
+  node10 [label="Int
+1"]
+  node9 -> node10;
+  node11 [shape="rect" label="WriteLn"]
+  node9 -> node11;
+  node12 [label="Int
+1"]
+  node11 -> node12;
+  node13 [shape="rect" label="Case"]
+  node7 -> node13;
+  node14 [label="Int
+2"]
+  node13 -> node14;
+  node15 [shape="rect" label="WriteLn"]
+  node13 -> node15;
+  node16 [label="Int
+143"]
+  node15 -> node16;
+  node17 [shape="rect" label="Case"]
+  node7 -> node17;
+  node18 [label="Int
+3"]
+  node17 -> node18;
+  node19 [shape="rect" label="WriteLn"]
+  node17 -> node19;
+  node20 [label="Int
+88"]
+  node19 -> node20;
+  node21 [shape="rect" label="Switch"]
+  node6 -> node21;
+  node22 [label="Identifier
+s"]
+  node21 -> node22;
+  node23 [shape="rect" label="Case"]
+  node21 -> node23;
+  node24 [label="String
+banana"]
+  node23 -> node24;
+  node25 [shape="rect" label="Block"]
+  node23 -> node25;
+  node26 [shape="rect" label="WriteLn"]
+  node25 -> node26;
+  node27 [label="String
+yellow"]
+  node26 -> node27;
+  node28 [shape="rect" label="Return"]
+  node25 -> node28;
+  node29 [shape="rect" label="Case"]
+  node21 -> node29;
+  node30 [label="String
+mango"]
+  node29 -> node30;
+  node31 [shape="rect" label="Block"]
+  node29 -> node31;
+  node32 [shape="rect" label="WriteLn"]
+  node31 -> node32;
+  node33 [label="String
+orange"]
+  node32 -> node33;
+  node34 [shape="rect" label="Return"]
+  node31 -> node34;
+  node35 [shape="rect" label="Case"]
+  node21 -> node35;
+  node36 [label="String
+strawberry"]
+  node35 -> node36;
+  node37 [shape="rect" label="Block"]
+  node35 -> node37;
+  node38 [shape="rect" label="WriteLn"]
+  node37 -> node38;
+  node39 [label="String
+red"]
+  node38 -> node39;
+  node40 [shape="rect" label="Return"]
+  node37 -> node40;
+  node41 [shape="rect" label="WriteLn"]
+  node6 -> node41;
+  node42 [label="String
+Fell through fruit cases"]
+  node41 -> node42;
+  node43 [shape="rect" label="Return"]
+  node6 -> node43;
+  node44 [shape="rect" label="Function
+AString
+string"]
+  node0 -> node44;
+  node45 [shape="rect" label="Return"]
+  node44 -> node45;
+  node46 [label="String
+strawberry"]
+  node45 -> node46;
+  node47 [shape="rect" label="Function
+AnotherString
+string"]
+  node0 -> node47;
+  node48 [shape="rect" label="Return"]
+  node47 -> node48;
+  node49 [label="String
+apple"]
+  node48 -> node49;
+  node50 [shape="rect" label="Block"]
+  node0 -> node50;
+  node51 [shape="rect" label="Procedure Call
+Run"]
+  node50 -> node51;
+  node52 [label="Int
+1"]
+  node51 -> node52;
+  node53 [shape="rect" label="Function Call
+AString"]
+  node51 -> node53;
+  node54 [shape="rect" label="Procedure Call
+Run"]
+  node50 -> node54;
+  node55 [label="Int
+3"]
+  node54 -> node55;
+  node56 [shape="rect" label="Function Call
+AnotherString"]
+  node54 -> node56;
+  node57 [shape="rect" label="Procedure Call
+Run"]
+  node50 -> node57;
+  node58 [label="Int
+5"]
+  node57 -> node58;
+  node59 [label="String
+mango"]
+  node57 -> node59;
+  node60 [shape="rect" label="Procedure Call
+Run"]
+  node50 -> node60;
+  node61 [label="Int
+0"]
+  node60 -> node61;
+  node62 [label="String
+banananana"]
+  node60 -> node62;
 }

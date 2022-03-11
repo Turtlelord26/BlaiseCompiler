@@ -22,7 +22,7 @@ namespace Blaise2.Ast
 
         public static bool Visit(ReturnNode node) => true;
 
-        public static bool Visit(BlockNode node) => node.Stats.Aggregate(false, (valid, next) => valid | Visit((dynamic)next));
+        public static bool Visit(BlockNode node) => Visit((dynamic)node.Stats[node.Stats.Count - 1]);
 
         public static bool Visit(AbstractAstNode node) => node.IsEmpty() ? false : throw new InvalidOperationException($"Function return evaluator encountered unexpected node type {node.Type}.");
     }

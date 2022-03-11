@@ -108,5 +108,10 @@ namespace Blaise2.Ast
                                                                                     or IfNode
                                                                                     or LoopNode
                                                                                     or SwitchNode;
+
+        public static bool IsValidSwitchInput(BlaiseType switchType) => switchType.BasicType is CHAR
+                                                                                             or INTEGER
+                                                                                             or REAL
+                                                                                             or STRING;
     }
 }

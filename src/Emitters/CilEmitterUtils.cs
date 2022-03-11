@@ -41,41 +41,49 @@ namespace Blaise2.Emitters
 
         private string MakeAnonymousVar() => $"___AnonVar_{anonymousVarNum++}";
 
-        private static string ToCilOperator(BlaiseOperator op) => op switch
+        private static string ToCilOperator(BlaiseOperator op, BlaiseType operandType) => (op, operandType.BasicType) switch
         {
-            Pow => @"
+            (Pow, _) => @"
     call float64 [System.Private.CoreLib]System.Math::Pow(float64, float64)",
-            Mul => @"
+            (Mul, _) => @"
     mul",
-            Div => @"
+            (Div, _) => @"
     div",
-            Add => @"
+            (Add, STRING) => @"
     add",
-            Sub => @"
+            (Add, _) => @"
+    add",
+            (Sub, _) => @"
     sub",
-            Gt => @"
+            (Gt, _) => @"
     cgt",
-            Lt => @"
+            (Lt, _) => @"
     clt",
-            Eq => @"
+            (Eq, STRING) => @"
+    call bool [System.Private.CoreLib]System.String::op_Equality(string, string)",
+            (Eq, _) => @"
     ceq",
-            Ne => @"
+            (Ne, STRING) => @"
+    call bool [System.Private.CoreLib]System.String::op_Equality(string, string)
+    ldc.i4.0
+    ceq",
+            (Ne, _) => @"
     ceq
     ldc.i4.0
     ceq",
-            Gte => @"
+            (Gte, _) => @"
     clt
     ldc.i4.0
     ceq",
-            Lte => @"
+            (Lte, _) => @"
     cgt
     ldc.i4.0
     ceq",
-            And => @"
+            (And, _) => @"
     and",
-            Or => @"
+            (Or, _) => @"
     or",
-            Not => @"
+            (Not, _) => @"
     ldc.i4.0
     ceq",
             _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
@@ -91,25 +99,34 @@ namespace Blaise2.Emitters
     conv.i4",
                 REAL => @"
     conv.r8",
-                STRING => PromoteToString(currentType.BasicType, targetType.BasicType, opContainer),
+                STRING => PromoteToString(currentType, targetType, opContainer),
                 _ => throw new InvalidOperationException($"Cannot convert {currentType} to {targetType}")
             };
         }
 
-        private string PromoteToString(BlaiseTypeEnum current, BlaiseTypeEnum target, AbstractAstNode container)
+        private string PromoteToString(BlaiseType current, BlaiseType target, AbstractAstNode container)
         {
-            var systemType = current switch
+            var systemType = current.BasicType switch
             {
                 CHAR => "Char",
                 INTEGER => "Int32",
                 REAL => "Double",
                 _ => throw new InvalidOperationException($"Cannot convert {current} to {target}")
             };
+            var identifier = MakeAndInjectLocalVar(current, container);
+            return @$"
+    stloc {identifier}
+    ldloca {identifier}
+    call instance string [System.Private.CoreLib]System.{systemType}::ToString()";
+        }
+
+        private string MakeAndInjectLocalVar(BlaiseType varType, AbstractAstNode container)
+        {
             var identifier = MakeAnonymousVar();
             var decl = new VarDeclNode()
             {
                 Identifier = identifier,
-                BlaiseType = new() { BasicType = current }
+                BlaiseType = varType.DeepCopy()
             };
             switch (GetContainingFunctionOrProgram(container))
             {
@@ -120,10 +137,7 @@ namespace Blaise2.Emitters
                     MainLocals.Add(decl);
                     break;
             }
-            return @$"
-    stloc {identifier}
-    ldloca {identifier}
-    call instance string [System.Private.CoreLib]System.{systemType}::ToString()";
+            return identifier;
         }
 
         private static ProgramNode GetContainingFunctionOrProgram(AbstractAstNode climber) => climber switch

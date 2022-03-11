@@ -223,6 +223,14 @@ namespace Blaise2.Ast
             _ => throw new InvalidOperationException($"Invalid Atom {context.GetText()}")
         };
 
+        public override AbstractAstNode VisitSwitchAtom([NotNull] BlaiseParser.SwitchAtomContext context) => context switch
+        {
+            { numValue: not null } => VisitNumericAtom(context.numValue),
+            { charValue: not null } => Build<CharNode>(n => n.CharValue = context.charValue.Text[1]),
+            { stringValue: not null } => Build<StringNode>(n => n.StringValue = context.stringValue.Text[1..^1]),
+            _ => throw new InvalidOperationException($"Invalid Switch Atom {context.GetText()}")
+        };
+
         private AbstractAstNode MakeBlock([NotNull] IList<BlaiseParser.StatContext> stats) => stats.Count switch
         {
             0 => AbstractAstNode.Empty,

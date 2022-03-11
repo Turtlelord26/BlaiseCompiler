@@ -94,8 +94,6 @@ namespace Blaise2.Ast
             BasicType = STRING
         };
 
-        public static bool IsValidSwitchInput(BlaiseType switchType) => switchType.BasicType is CHAR or INTEGER or REAL or STRING;
-
         private static BlaiseType GetPromotedBinaryOpType(BlaiseType left, BlaiseType right, BlaiseOperator op)
         {
             if (left.BasicType > right.BasicType)
@@ -110,7 +108,7 @@ namespace Blaise2.Ast
                 (_, CHAR, CHAR)
                 or (_, INTEGER, CHAR or INTEGER)
                 or (_, REAL, CHAR or INTEGER or REAL)
-                or (Add, STRING, CHAR or INTEGER or REAL or STRING) => right.DeepCopy(),
+                or (Add or Eq or Ne, STRING, CHAR or INTEGER or REAL or STRING) => right.DeepCopy(),
                 (_, _, ARRAY or SET) => throw new NotImplementedException("Type promotion support for extended types not yet implemented."),
                 _ => BlaiseType.ErrorType
             };

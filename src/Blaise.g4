@@ -104,14 +104,14 @@ repeatUntil
 
 switchSt
 	: 'case' LPAREN on = expression RPAREN 'of' switchCase+ (
-		'else' defaultCase = stat
-	) 'end';
-
-ret
-	: 'return' retExpr = expression?;
+		'else' defaultCase = stat SEMI
+	)? 'end';
 
 switchCase
 	: alt = switchAtom ':' st = stat SEMI;
+
+ret
+	: 'return' retExpr = expression?;
 
 expression
 	: LPAREN inner = expression RPAREN
@@ -162,8 +162,9 @@ atom
 	| stringValue = STRING;
 
 switchAtom
-	: numericAtom
-	| CHAR;
+	: numValue = numericAtom
+	| charValue = CHAR
+	| stringValue = STRING;
 
 KINTEGER
 	: 'integer';

@@ -143,10 +143,15 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(SwitchNode node)
         {
+            var valid = Evaluate((dynamic)node.Input);
             var inType = TypeResolver.ResolveType(node.Input);
-            var valid = node.Cases.Aggregate(true, (valid, next) => valid & Evaluate(next))
-                    & Evaluate((dynamic)node.Default);
-            if (!TypeResolver.IsValidSwitchInput(inType))
+            valid = inType.IsValid()
+                    & node.Cases.Aggregate(true, (valid, next) => valid & Evaluate(next));
+            if (!node.Default.IsEmpty())
+            {
+                valid = valid & Evaluate((dynamic)node.Default);
+            }
+            if (!IsValidSwitchInput(inType))
             {
                 Errors.Append($"{inType} is not a valid case statement input type.");
                 return false;
@@ -245,7 +250,13 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(FunctionCallNode node)
         {
-            var valid = node.Arguments.Aggregate(true, (valid, next) => Evaluate((dynamic)next));
+            var valid = true;
+            for (int i = 0; i < node.Arguments.Count; i++)
+            {
+                valid = valid & Evaluate((dynamic)node.Arguments[i]);
+            }
+            //Evaluate can modify the underlying collection with constant folding, thus cannot live in an Aggregate or foreach.
+            //For later, separate the constant folding into a separate visitor that runs as a subsequent pass.
             node.CallTarget = ReferenceResolver.FindFunction(node, node.Identifier, node.IsFunction);
             if (node.CallTarget is null)
             {

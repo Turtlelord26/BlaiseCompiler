@@ -62,6 +62,25 @@ namespace Blaise2.Tests
                 end.
                 ",
                 typeof(InvalidOperationException) };
+
+            yield return new object[] { "Function switch missing return", @"
+                program ReturnTestSwitch;
+                
+                function Run(s: string) : string;
+                begin
+                    case (s) of 
+                        'banana':
+                            write('yellow');
+                        'mango':
+                            return 'orange';
+                        'strawberry':
+                            return 'red';
+                    end;
+                end;
+                
+                Run('strawberry').
+                ",
+                typeof(InvalidOperationException) };
         }
 
         public string GetDisplayName(MethodInfo methodInfo, object[] data)

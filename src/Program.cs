@@ -7,6 +7,54 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
+                program Cases;
+                
+                var x : integer;
+                    s : string;
+                
+                function AString() : string;
+                    return 'strawberry';
+                
+                function AnotherString() : string;
+                    return 'apple';
+                
+                procedure Run(x: integer; s: string);
+                begin
+                    case (x) of
+                        1: writeln(1);
+                        2: writeln(143);
+                        3: writeln(88);
+                    else
+                        writeln('None of the ints');
+                    end;
+                    case (s) of 
+                        'banana': 
+                            begin
+                                writeln('yellow');
+                                return;
+                            end;
+                        'mango': 
+                            begin
+                                writeln('orange');
+                                return;
+                            end;
+                        'strawberry':
+                            begin
+                                writeln('red');
+                                return;
+                            end;
+                    end;
+                    writeln('Fell through fruit cases');
+                end;
+
+                begin
+                    Run(1, AString());
+                    Run(3, AnotherString());
+                    Run(5, 'man' + 'go');
+                    Run(0, 'banananana');
+                end.
+                ");
+            /*Try(@"
                 program Logic;
 
                 var x : integer;
@@ -16,7 +64,7 @@ namespace Blaise2
                     write(' ');
                     write( false | 3.14 = 3.141592653589793238462643383279 & true );
                 end.
-            ");
+            ");*/
         }
 
         static void Try(string input)
