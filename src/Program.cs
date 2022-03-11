@@ -7,24 +7,16 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
-                program Folding;
-                
-                begin
-                    writeln(1 + 2.0 - 4 * 4 >= 3 / 3 + (4 - 3) ^ 5);
-                    writeln('string' + ' ' + 'constants' + ' ' + 'are' + ' ' + 'folded!');
-                end.
-            ");
-            /*Try(@"
                 program Logic;
 
                 var x : integer;
 
                 begin
-                    write( not 3 < 2 and 1 <> 2 );
+                    write( ! 3 < 2 & 1 <> 2 );
                     write(' ');
-                    write( false or 3.14 = 3.141592653589793238462643383279 and true );
+                    write( false | 3.14 = 3.141592653589793238462643383279 & true );
                 end.
-            ");*/
+            ");
         }
 
         static void Try(string input)

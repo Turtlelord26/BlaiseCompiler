@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Blaise2.Ast.AstNodeExtensions;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
@@ -47,18 +48,36 @@ namespace Blaise2.Ast
             var valid = node.VarInfo is not null
                  & Evaluate((dynamic)node.Expression);
             var varType = node.VarInfo?.VarDecl.BlaiseType;
-            var exprType = TypeResolver.ResolveType((dynamic)node.Expression);
-            if (TypeResolver.IsAllowedAssignment(exprType, varType))
+            if (varType is null)
+            {
+                Errors.Append($"Cannot resolve variable {node.Identifier}.");
+                return false;
+            }
+            var exprType = TypeResolver.ResolveType(node.Expression);
+            if (varType.Equals(exprType))
             {
                 return valid;
             }
-            Errors.Append($"Cannot implicitly convert a value of type {exprType} to {varType}.");
+            if (IsConstantNode(node.Expression))
+            {
+                var promoted = PromoteAssignmentExpressionOrEmpty(node.Expression, varType.BasicType);
+                if (!promoted.IsEmpty())
+                {
+                    node.Expression = promoted;
+                    return valid;
+                }
+            }
+            else if (IsAllowedPromotion(exprType, varType))
+            {
+                return valid;
+            }
+            Errors.Append($"Cannot assign a value of type {exprType} to {varType}.");
             return false;
         }
 
         private static bool Evaluate(FunctionNode node)
         {
-            var valid = node.IsFunction && node.ReturnType is not null
+            var valid = (node.IsFunction && node.ReturnType is not null)
                       | !node.IsFunction;
             var varDecls = node.VarDecls.Concat(node.Params).ToList();
             valid = valid
@@ -76,6 +95,19 @@ namespace Blaise2.Ast
             {
                 return valid;
             }
+            else if (!node.IsFunction)
+            {
+                var retNode = Build<ReturnNode>(n => n.Expression = (AbstractTypedAstNode)AbstractAstNode.Empty).WithParent(node);
+                switch (node.Stat)
+                {
+                    case BlockNode block:
+                        block.Stats.Add(retNode);
+                        return valid;
+                    case AbstractAstNode when IsStatButNotBlockOrReturn(node.Stat):
+                        node.Stat = Build<BlockNode>(n => n.Stats = new List<AbstractAstNode>() { node.Stat, retNode }).WithParent(node);
+                        return valid;
+                }
+            }
             Errors.Append($"{node.Identifier}: Not all code paths return{(node.IsFunction ? " a value" : "")}.");
             return false;
         }
@@ -85,7 +117,7 @@ namespace Blaise2.Ast
             var valid = Evaluate((dynamic)node.Condition)
                     & Evaluate((dynamic)node.ThenStat)
                     & Evaluate((dynamic)node.ElseStat);
-            if (TypeResolver.ResolveType((dynamic)node.Condition).BasicType != BOOLEAN)
+            if (TypeResolver.ResolveType(node.Condition).BasicType != BOOLEAN)
             {
                 Errors.Append("Cannot resolve if condition to a bool.");
                 return false;
@@ -111,7 +143,7 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(SwitchNode node)
         {
-            var inType = TypeResolver.ResolveType((dynamic)node.Input);
+            var inType = TypeResolver.ResolveType(node.Input);
             var valid = node.Cases.Aggregate(true, (valid, next) => valid & Evaluate(next))
                     & Evaluate((dynamic)node.Default);
             if (!TypeResolver.IsValidSwitchInput(inType))
@@ -119,7 +151,7 @@ namespace Blaise2.Ast
                 Errors.Append($"{inType} is not a valid case statement input type.");
                 return false;
             };
-            var typesMatch = node.Cases.Aggregate(true, (valid, next) => valid & TypeResolver.ResolveType((dynamic)next.Case).Equals(inType));
+            var typesMatch = node.Cases.Aggregate(true, (valid, next) => valid & TypeResolver.ResolveType(next.Case).Equals(inType));
             if (!typesMatch)
             {
                 Errors.Append($"Case alternative type mismatch, expected {inType}.");
@@ -166,7 +198,7 @@ namespace Blaise2.Ast
             var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
             if (!TypeResolver.ResolveType(node).IsValid())
             {
-                Errors.Append($"Cannot apply operator {node.Operator} to types {(node.Left).GetExprType()}, {(node.Right).GetExprType()}");
+                Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
                 return false;
             }
             ExpressionFolder.Visit(node);
@@ -178,7 +210,7 @@ namespace Blaise2.Ast
             var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
             if (!TypeResolver.ResolveType(node).IsValid())
             {
-                Errors.Append($"Cannot apply operator {node.Operator} to types {(node.Left).GetExprType()}, {(node.Right).GetExprType()}");
+                Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
                 return false;
             }
             ExpressionFolder.Visit(node);
@@ -202,7 +234,7 @@ namespace Blaise2.Ast
         private static bool Evaluate(NotOpNode node)
         {
             var valid = Evaluate((dynamic)node.Expression);
-            if (TypeResolver.ResolveType((dynamic)node.Expression).BasicType != BOOLEAN)
+            if (TypeResolver.ResolveType(node.Expression).BasicType != BOOLEAN)
             {
                 Errors.Append($"Could not resolve Not operand to a boolean. Got {node.Expression.GetExprType()}.");
                 return false;

@@ -1,5 +1,6 @@
 using System;
 using Blaise2.Ast;
+using static Blaise2.Ast.AstNodeExtensions;
 using static Blaise2.Ast.BlaiseOperator;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
@@ -7,6 +8,10 @@ namespace Blaise2.Emitters
 {
     public partial class CilEmitter
     {
+        private int labelNum = 0;
+
+        private int anonymousVarNum = 0;
+
         private static string Preamble()
         {
             return @"
@@ -31,6 +36,10 @@ namespace Blaise2.Emitters
 } // end of class
 ";
         }
+
+        private string MakeLabel() => $"Label{labelNum++}";
+
+        private string MakeAnonymousVar() => $"___AnonVar_{anonymousVarNum++}";
 
         private static string ToCilOperator(BlaiseOperator op) => op switch
         {
@@ -72,28 +81,56 @@ namespace Blaise2.Emitters
             _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
         };
 
-        private static string TypeConvert(BlaiseType currentType, BlaiseType targetType)
+        private string TypeConvert(BlaiseType currentType, BlaiseType targetType, AbstractAstNode opContainer)
         {
-            var current = currentType.BasicType;
-            var target = targetType.BasicType;
-            if (target == REAL & current == CHAR
-                                | current == INTEGER)
+            return targetType.BasicType switch
             {
-                return @"
-    conv.r8";
-            }
-            if (target == STRING)
-            {
-                if (current == CHAR | current == INTEGER)
-                {
-                    throw new NotImplementedException($"convert {current} to {target}");
-                }
-                if (current == REAL)
-                {
-                    throw new NotImplementedException($"convert {current} to {target}");
-                }
-            }
-            throw new InvalidOperationException($"Cannot convert {current} to {target}");
+                CHAR => @"
+    conv.u2",
+                INTEGER => @"
+    conv.i4",
+                REAL => @"
+    conv.r8",
+                STRING => PromoteToString(currentType.BasicType, targetType.BasicType, opContainer),
+                _ => throw new InvalidOperationException($"Cannot convert {currentType} to {targetType}")
+            };
         }
+
+        private string PromoteToString(BlaiseTypeEnum current, BlaiseTypeEnum target, AbstractAstNode container)
+        {
+            var systemType = current switch
+            {
+                CHAR => "Char",
+                INTEGER => "Int32",
+                REAL => "Double",
+                _ => throw new InvalidOperationException($"Cannot convert {current} to {target}")
+            };
+            var identifier = MakeAnonymousVar();
+            var decl = new VarDeclNode()
+            {
+                Identifier = identifier,
+                BlaiseType = new() { BasicType = current }
+            };
+            switch (GetContainingFunctionOrProgram(container))
+            {
+                case FunctionNode func:
+                    func.VarDecls.Add(decl);
+                    break;
+                case ProgramNode:
+                    MainLocals.Add(decl);
+                    break;
+            }
+            return @$"
+    stloc {identifier}
+    ldloca {identifier}
+    call instance string [System.Private.CoreLib]System.{systemType}::ToString()";
+        }
+
+        private static ProgramNode GetContainingFunctionOrProgram(AbstractAstNode climber) => climber switch
+        {
+            ProgramNode prog => prog,
+            null => throw new InvalidOperationException($"Fatal error: emitter could not resolve containing program while type converting"),
+            _ => GetContainingFunctionOrProgram(climber.Parent)
+        };
     }
 }

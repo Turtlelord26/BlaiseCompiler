@@ -10,7 +10,7 @@ namespace Blaise2.Ast
         {
             IVarOwner vo => vo.GetVarByName(variableName) switch
             {
-                SymbolInfo info when info.VarDecl.Identifier.Equals(variableName) => info,
+                SymbolInfo info => info,
                 _ => FindVariable(climber.Parent, variableName)
             },
             null => null,
@@ -25,7 +25,7 @@ namespace Blaise2.Ast
             {
                 ProgramNode prog => FindFunctionByName(caller, prog, funcName, isFunction) switch
                 {
-                    FunctionNode func when func.Identifier.Equals(funcName) => func,
+                    FunctionNode func => func,
                     _ => FindFunction(caller, climber.Parent, funcName, isFunction)
                 },
                 null => null,

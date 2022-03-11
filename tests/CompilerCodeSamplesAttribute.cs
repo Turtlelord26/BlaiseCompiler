@@ -92,6 +92,45 @@ Term 19: 4181" };
                 end.
             ",
             "True False" };
+
+            yield return new object[] { "Procedure with uneven return flow", @"
+                program UnevenReturnProcedure;
+                
+                var x : real;
+
+                procedure DoTheThing();
+                    begin
+                        x := 1.5;
+                        if (x > 1) then
+                            write(1 + ' ');
+                        else
+                            return;
+                        write('Got Here');
+                        return;
+                    end;
+                
+                DoTheThing().
+                ",
+                "1 Got Here" };
+
+            yield return new object[] { "Procedure that does not end in a return", @"
+                program NonreturningCodePath;
+                
+                var x : real;
+
+                procedure DoTheThing();
+                    begin
+                        x := 1.5;
+                        if (x > 1) then
+                            write(1 + ' ');
+                        else
+                            return;
+                        write('Got Here');
+                    end;
+                
+                DoTheThing().
+                ",
+                "1 Got Here"};
         }
 
         public string GetDisplayName(MethodInfo methodInfo, object[] data)

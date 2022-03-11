@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Blaise2.Ast;
@@ -12,16 +13,19 @@ namespace Blaise2.Emitters
     {
         private const string nopDelimiter = @"
     nop";
-        private int labelNum = 0;
         private string Cil = string.Empty;
         private string ProgramName;
+        private List<VarDeclNode> MainLocals = new();
 
         public string Visit(ProgramNode node)
         {
             ProgramName = node.Identifier;
+            var body = Visit((dynamic)node.Stat);
             var fields = node.VarDecls.Aggregate("", (cil, v) => cil += $@"
     .field public {v.BlaiseType.ToCilType()} {v.Identifier}");
             var methods = node.Procedures.Concat(node.Functions).Aggregate("\n", (cil, next) => cil += Visit(next));
+            var localIndex = 1;
+            var mainLocals = MainLocals.Aggregate("", (cil, l) => cil += $",\n\t\t[{localIndex++}] {l.BlaiseType.ToCilType()} {l.Identifier}");
             return @$"{Preamble()}
 .class public auto ansi beforefieldinit {node.Identifier}
     extends [System.Private.CoreLib]System.Object
@@ -35,13 +39,13 @@ namespace Blaise2.Emitters
   {{
     .entrypoint
     .locals init (
-      [0] class {ProgramName}
+        [0] class {ProgramName}{mainLocals}
     )
 
     nop
     newobj instance void {ProgramName}::.ctor()
     stloc.0
-    {Visit((dynamic)node.Stat)}
+    {body}
     nop
     ret
   }} // end of main
@@ -51,6 +55,7 @@ namespace Blaise2.Emitters
 
         public string Visit(FunctionNode node)
         {
+            var body = Visit((dynamic)node.Stat);
             var isFunction = node.IsFunction;
             var returnType = isFunction ? node.ReturnType.ToCilType() : "void";
             var paramsList = string.Join(",\n\t\t", node.Params.Select(p => $"{p.BlaiseType.ToCilType()} {p.Identifier}"));
@@ -63,12 +68,11 @@ namespace Blaise2.Emitters
     ) cil managed
   {{
     .locals init (
-        [0] class {ProgramName}
-        {locals}
+        [0] class {ProgramName}{locals}
     )
     ldarg.0
     stloc.0
-    {Visit((dynamic)node.Stat)}
+    {body}
   }}";
             //THIS IS WHERE INNER FUNCS AND PROCS WOULD GO
             if (node.Functions.Count() > 0 | node.Procedures.Count() > 0)
@@ -93,26 +97,22 @@ namespace Blaise2.Emitters
         {
             var info = node.VarInfo ?? throw new InvalidOperationException($"Couldn't resolve variable {node.Identifier}.");
             var varType = info.VarDecl.BlaiseType;
-            var implicitConversion = varType.Equals(node.Expression.GetExprType()) ? "" : varType.ToCilType() switch
-            {
-                "float64" => "conv.r8",
-                "int32" => "conv.i4",
-                "char" => "conv.u2",
-                _ => throw new InvalidOperationException($"Encountered unexpected CIL type {varType.ToCilType()} during {varType} assignment implicit casting.")
-            };
+            var exprType = node.Expression.GetExprType();
+            var typeConversion = varType.Equals(exprType) ? ""
+                                                          : TypeConvert(exprType, varType, node);
             return info.VarType switch
             {
                 Global => @$"
     ldloc.0{Visit((dynamic)node.Expression)}
-    {implicitConversion}
+    {typeConversion}
     stfld {info.VarDecl.BlaiseType.ToCilType()} {ProgramName}::{info.VarDecl.Identifier}",
                 Local => @$"
     {Visit((dynamic)node.Expression)}
-    {implicitConversion}
+    {typeConversion}
     stloc {info.VarDecl.Identifier}",
                 Argument => @$"
     {Visit((dynamic)node.Expression)}
-    {implicitConversion}
+    {typeConversion}
     starg.s {info.VarDecl.Identifier}",
                 _ => throw new InvalidOperationException($"Invalid VarType {info.VarType}")
             };
@@ -187,6 +187,8 @@ namespace Blaise2.Emitters
         {
             //Try reversing the order of function and program emitters. Visit and store the contents, then visit the varblocks.
             //Use the contents to add more vardeclnodes to the tree as needed. Then catch later in VisitFunction/program.
+            //For later: jump table if max-min < 2x num cases, then if not cut the bottom or top case off based on dist from next until
+            //  you have a set matching the condition (hybrid emit) or less than half the cases, in which case do if tree.
             throw new NotImplementedException("Figure out how to add more locals while in the emitter? Or before ... somewhere?");
             /*var endLabel = MakeLabel();
             var branchHandling = "";
@@ -272,12 +274,12 @@ namespace Blaise2.Emitters
             var output = Visit((dynamic)node.Left);
             if (!node.LeftType.Equals(node.ExprType))
             {
-                output += TypeConvert(node.LeftType, node.ExprType);
+                output += TypeConvert(node.LeftType, node.ExprType, node);
             }
             output += Visit((dynamic)node.Right);
             if (!node.RightType.Equals(node.ExprType))
             {
-                output += TypeConvert(node.RightType, node.ExprType);
+                output += TypeConvert(node.RightType, node.ExprType, node);
             }
             return output + ToCilOperator(node.Operator);
         }
@@ -289,12 +291,12 @@ namespace Blaise2.Emitters
             var output = Visit((dynamic)node.Left);
             if (leftBasicType < rightBasicType & !node.LeftType.Equals(node.RightType))
             {
-                output += TypeConvert(node.LeftType, node.RightType);
+                output += TypeConvert(node.LeftType, node.RightType, node);
             }
             output += Visit((dynamic)node.Right);
             if (leftBasicType > rightBasicType & !node.LeftType.Equals(node.RightType))
             {
-                output += TypeConvert(node.RightType, node.LeftType);
+                output += TypeConvert(node.RightType, node.LeftType, node);
             }
             return output + ToCilOperator(node.Operator);
         }
@@ -310,7 +312,5 @@ namespace Blaise2.Emitters
         }
 
         public string Visit(AbstractAstNode node) => node.IsEmpty() ? "" : throw new InvalidOperationException($"Invalid node type {node.Type}");
-
-        private string MakeLabel() => $"Label{labelNum++}";
     }
 }

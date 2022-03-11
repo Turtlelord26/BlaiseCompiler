@@ -499,7 +499,7 @@ namespace Blaise2.Tests
         }
 
         [TestMethod]
-        public void CanFoldConstants()
+        public void CanFoldConstants_StringTreeComparison()
         {
             // Arrange
             const string src = @"
@@ -528,6 +528,59 @@ namespace Blaise2.Tests
             var controlTree = controlCompiler.Ast.ToStringTree();
             // Assert
             Assert.AreEqual(controlTree, stringTree);
+        }
+
+        [TestMethod]
+        public void CanFoldConstants_CilInspection()
+        {
+            // Arrange
+            const string src = @"
+                program Test;
+                var
+                    x: integer;
+                begin
+                    x := 2 * 3;
+                    write(x);
+                end.
+            ";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.IsFalse(compiler.Cil.Contains("mul"));
+            Assert.AreEqual("6", result);
+        }
+
+        [TestMethod]
+        public void CanPromoteRealFunctionReturnToString()
+        {
+            // Arrange
+            const string src = @"
+                program PromoteNonconstant;
+                
+                var s : string;
+
+                function StringyThingy() : real;
+                    return 1.1;
+
+                begin
+                    s := StringyThingy();
+                    write(s);
+                end.
+            ";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.AreEqual("1.1", result);
         }
     }
 }
