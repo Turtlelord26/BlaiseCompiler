@@ -146,5 +146,13 @@ namespace Blaise2.Emitters
             null => throw new InvalidOperationException($"Fatal error: emitter could not resolve containing program while type converting"),
             _ => GetContainingFunctionOrProgram(climber.Parent)
         };
+
+        private static string EmitBranchToEndLabelUnlessStatReturns(string endLabel, AbstractAstNode stat) =>
+                FunctionReturnEvaluator.Visit(stat) ? ""
+                                                    : $"br.s {endLabel}";
+
+        private static string EmitLabelUnlessStatReturns(string label, AbstractAstNode stat) =>
+                FunctionReturnEvaluator.Visit(stat) ? ""
+                                                    : $"{label}: nop";
     }
 }

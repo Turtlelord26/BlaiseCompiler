@@ -138,8 +138,7 @@ namespace Blaise2.Ast
         }
 
         private static bool Evaluate(ForLoopNode node) => Evaluate((LoopNode)node)
-                                                        & Evaluate(node.Assignment)
-                                                        & Evaluate(node.Iteration);
+                                                        & Evaluate(node.Assignment);
 
         private static bool Evaluate(SwitchNode node)
         {

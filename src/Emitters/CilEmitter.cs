@@ -122,36 +122,26 @@ namespace Blaise2.Emitters
         public string Visit(IfNode node)
         {
             var thenLabel = MakeLabel();
-            var returns = FunctionReturnEvaluator.Visit(node);
-            var output = @$"
+            var endLabel = MakeLabel();
+            return @$"
     {Visit((dynamic)node.Condition)}
-    brtrue.s {thenLabel}";
-            var elseStat = @$"
-    {Visit((dynamic)node.ElseStat)}";
-            var thenStat = @$"
+    brtrue.s {thenLabel}
+    {Visit((dynamic)node.ElseStat)}
+    {EmitBranchToEndLabelUnlessStatReturns(endLabel, node.ElseStat)}
     {thenLabel}: nop
-    {Visit((dynamic)node.ThenStat)}";
-            if (!returns)
-            {
-                var endLabel = MakeLabel();
-                elseStat += @$"
-    br.s {endLabel}";
-                thenStat += @$"
-    {endLabel}: nop";
-            }
-            return output + elseStat + thenStat;
+    {Visit((dynamic)node.ThenStat)}
+    {EmitBranchToEndLabelUnlessStatReturns(endLabel, node.ThenStat)}
+    {EmitLabelUnlessStatReturns(endLabel, node.ThenStat)}";
         }
 
         public string Visit(LoopNode node)
         {
-            if (node.LoopType == While || node.LoopType == Until)
-            {
-                var bodyLabel = MakeLabel();
-                var endLabel = MakeLabel();
-                var brEnd = node.LoopType == While ? "brfalse" : "brtrue";
-                var brBody = node.LoopType == While ? "brtrue" : "brfalse";
-                var conditionCil = Visit((dynamic)node.Condition);
-                return @$"
+            var bodyLabel = MakeLabel();
+            var endLabel = MakeLabel();
+            var brEnd = node.LoopType == Until ? "brtrue" : "brfalse";
+            var brBody = node.LoopType == Until ? "brfalse" : "brtrue";
+            var conditionCil = Visit((dynamic)node.Condition);
+            return @$"
     {conditionCil}
     {brEnd}.s {endLabel}
     {bodyLabel}: nop
@@ -159,30 +149,9 @@ namespace Blaise2.Emitters
     {conditionCil}
     {brBody}.s {bodyLabel}
     {endLabel}: nop";
-            }
-            throw new InvalidOperationException($"Invalid Loop Type {node.LoopType}");
         }
 
-        public string Visit(ForLoopNode node)
-        {
-            if (node.LoopType == For)
-            {
-                var bodyLabel = MakeLabel();
-                var endLabel = MakeLabel();
-                var conditionCil = Visit((dynamic)node.Condition);
-                return @$"
-    {Visit(node.Assignment)}
-    {conditionCil}
-    brfalse.s {endLabel}
-    {bodyLabel}: nop
-    {Visit((dynamic)node.Body)}
-    {Visit(node.Iteration)}
-    {conditionCil}
-    brtrue.s {bodyLabel}
-    {endLabel}: nop";
-            }
-            throw new InvalidOperationException($"Invalid Loop Type {node.LoopType}");
-        }
+        public string Visit(ForLoopNode node) => Visit(node.Assignment) + Visit(node as LoopNode);
 
         public string Visit(SwitchNode node)
         {
@@ -206,12 +175,6 @@ namespace Blaise2.Emitters
     stloc {hiddenSwitchLocal}";
             foreach (var st in node.Cases)
             {
-                var branchToEnd = st.Stat switch
-                {
-                    ReturnNode ret => "",
-                    BlockNode blk when FunctionReturnEvaluator.Visit(blk) => "",
-                    _ => $"br.s {endLabel}"
-                };
                 var label = MakeLabel();
                 branchHandling += @$"
     ldloc {hiddenSwitchLocal}
@@ -220,7 +183,7 @@ namespace Blaise2.Emitters
                 cases += @$"
     {label}: nop
     {Visit((dynamic)st.Stat)}
-    {branchToEnd}";
+    {EmitBranchToEndLabelUnlessStatReturns(endLabel, st.Stat)}";
             }
             if (node.Default.IsEmpty())
             {

@@ -137,23 +137,13 @@ namespace Blaise2.Ast
             var down = context.direction.Text.Equals("downto");
             forNode.LoopType = For;
             forNode.Assignment = (AssignmentNode)VisitAssignment(context.init).WithParent(forNode);
-            forNode.Iteration = Build<AssignmentNode>(assignment =>
-            {
-                assignment.Identifier = forNode.Assignment.Identifier;
-                assignment.Expression = Build<BinaryOpNode>(increment =>
-                {
-                    increment.Left = Build<VarRefNode>(v => v.Identifier = forNode.Assignment.Identifier).WithParent(increment);
-                    increment.Right = Build<IntegerNode>(i => i.IntValue = 1).WithParent(increment);
-                    increment.Operator = down ? BlaiseOperator.Sub : BlaiseOperator.Add;
-                }).WithParent(assignment);
-            }).WithParent(forNode);
             forNode.Condition = Build<BooleanOpNode>(condition =>
             {
                 condition.Left = Build<VarRefNode>(v => v.Identifier = forNode.Assignment.Identifier).WithParent(condition);
                 condition.Right = (AbstractTypedAstNode)VisitExpression(context.limit).WithParent(condition);
                 condition.Operator = down ? BlaiseOperator.Gt : BlaiseOperator.Lt;
             }).WithParent(forNode);
-            forNode.Body = VisitStat(context.st).WithParent(forNode);
+            forNode.Body = CombineIntoBlock(VisitStat(context.st), MakeIteratorNode(forNode, down)).WithParent(forNode);
         });
 
         public override AbstractAstNode VisitRepeatUntil([NotNull] BlaiseParser.RepeatUntilContext context) => Build<LoopNode>(n =>
@@ -237,6 +227,33 @@ namespace Blaise2.Ast
             1 => VisitStat(stats[0]),
             _ => Build<BlockNode>(n => n.Stats = stats.Select(s => VisitStat(s).WithParent(n)).ToList())
         };
+
+        private AssignmentNode MakeIteratorNode(ForLoopNode forNode, bool down) => Build<AssignmentNode>(assignment =>
+        {
+            assignment.Identifier = forNode.Assignment.Identifier;
+            assignment.Expression = Build<BinaryOpNode>(increment =>
+            {
+                increment.Left = Build<VarRefNode>(v => v.Identifier = forNode.Assignment.Identifier).WithParent(increment);
+                increment.Right = Build<IntegerNode>(i => i.IntValue = 1).WithParent(increment);
+                increment.Operator = down ? BlaiseOperator.Sub : BlaiseOperator.Add;
+            }).WithParent(assignment);
+        });
+
+        private AbstractAstNode CombineIntoBlock(AbstractAstNode stats, AbstractAstNode appended)
+        {
+            switch (stats)
+            {
+                case BlockNode block:
+                    block.Stats.Add(appended.WithParent(block));
+                    return block;
+                case not null:
+                    return Build<BlockNode>(b =>
+                    {
+                        b.Stats = new List<AbstractAstNode>() { stats.WithParent(b), appended.WithParent(b) };
+                    });
+            }
+            throw new NullReferenceException();
+        }
 
         private AbstractAstNode MakeCallNode([NotNull] BlaiseParser.CallContext context, bool isFunction) => Build<FunctionCallNode>(n =>
         {

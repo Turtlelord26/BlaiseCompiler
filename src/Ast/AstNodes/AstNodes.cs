@@ -82,7 +82,6 @@ namespace Blaise2.Ast
     public partial class ForLoopNode : LoopNode
     {
         public AssignmentNode Assignment { get; set; }
-        public AssignmentNode Iteration { get; set; }
     }
 
     public class SwitchNode : AbstractAstNode
