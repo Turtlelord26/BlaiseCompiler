@@ -47,6 +47,7 @@ namespace Blaise2
                 if (Ast == null) { return false; }
 
                 var valid = AstEvaluator.EvaluateAst(Ast);
+                ConstantFolder.FoldConstants(Ast);
 
                 var renderer = new DotRenderer("./expr.dot");
                 renderer.Visualize(Ast);

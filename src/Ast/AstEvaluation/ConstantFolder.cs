@@ -1,18 +1,41 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using static Blaise2.Ast.BlaiseOperator;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
 {
-    public class ExpressionFolder
+    public class ConstantFolder
     {
-        public static void Visit(AbstractTypedAstNode node)
+        public static void FoldConstants(ProgramNode Ast) => FoldProgram(Ast);
+
+        private static void FoldStat(AbstractAstNode node)
+        {
+            switch (node)
+            {
+                case ProgramNode prog: FoldProgram(prog); return;
+                case BlockNode block: FoldBlock(block); return;
+                case WriteNode write: FoldWrite(write); return;
+                case AssignmentNode assign: FoldAssignment(assign); return;
+                case IfNode ifn: FoldIf(ifn); return;
+                case ForLoopNode forl: FoldForLoop(forl); return;
+                case LoopNode loop: FoldLoop(loop); return;
+                case SwitchNode switcher: FoldSwitch(switcher); return;
+                case ReturnNode ret: FoldReturn(ret); return;
+                case FunctionCallNode call: FoldCall(call); return;
+                case AbstractAstNode aan when aan.IsEmpty(): return;
+                default: throw new InvalidOperationException($"Unexpected node type {node.GetType()} encountered during constant folding.");
+            }
+        }
+
+        private static void FoldExpression(AbstractTypedAstNode node)
         {
             switch (node)
             {
                 case BinaryOpNode bin:
-                    Visit(bin.Left);
-                    Visit(bin.Right);
+                    FoldExpression(bin.Left);
+                    FoldExpression(bin.Right);
                     var folded = FoldBinary(bin);
                     if (!folded.IsEmpty())
                     {
@@ -20,7 +43,7 @@ namespace Blaise2.Ast
                     }
                     return;
                 case NotOpNode not:
-                    Visit(not.Expression);
+                    FoldExpression(not.Expression);
                     if (not.Expression is BooleanNode)
                     {
                         var boolnode = (BooleanNode)not.Expression;
@@ -36,8 +59,10 @@ namespace Blaise2.Ast
                     or CharNode
                     or StringNode:
                     return;
+                case AbstractTypedAstNode atan when atan.IsEmpty():
+                    return;
                 default:
-                    throw new InvalidOperationException("Invalid AbstractTypedAstNode detected during Expression Evaluation");
+                    throw new InvalidOperationException($"Invalid node type {node.GetType()} detected during Expression Evaluation");
             }
         }
 
@@ -122,6 +147,61 @@ namespace Blaise2.Ast
                     throw new InvalidOperationException($"Hoist error: old parent {oldParent.Type} not a child of new parent {newParent.Type}, or new parent node type not recognized.");
             }
             child.Parent = newParent;
+        }
+
+        private static void FoldProgram(ProgramNode node)
+        {
+            foreach (var routine in node.Procedures.Concat(node.Functions))
+            {
+                FoldProgram(routine);
+            }
+            FoldStat(node.Stat);
+        }
+
+        private static void FoldBlock(BlockNode node) => node.Stats.ForEach(stat => FoldStat(stat));
+
+        private static void FoldWrite(WriteNode node) => FoldExpression(node.Expression);
+
+        private static void FoldAssignment(AssignmentNode node) => FoldExpression(node.Expression);
+
+        private static void FoldIf(IfNode node)
+        {
+            FoldExpression(node.Condition);
+            FoldStat(node.ThenStat);
+            FoldStat(node.ElseStat);
+        }
+
+        private static void FoldLoop(LoopNode node)
+        {
+            FoldExpression(node.Condition);
+            FoldStat(node.Body);
+        }
+
+        private static void FoldForLoop(ForLoopNode node)
+        {
+            FoldAssignment(node.Assignment);
+            FoldLoop(node as LoopNode);
+        }
+
+        private static void FoldSwitch(SwitchNode node)
+        {
+            FoldExpression(node.Input);
+            foreach (var swc in node.Cases)
+            {
+                FoldStat(swc.Stat);
+            }
+        }
+
+        private static void FoldReturn(ReturnNode node) => FoldExpression(node.Expression);
+
+        private static void FoldCall(FunctionCallNode node)
+        {
+            //Cannot use a foreach loop or linq function here, because FoldExpression modifies the underlying collection.
+            var args = node.Arguments;
+            for (int i = 0; i < args.Count; i++)
+            {
+                FoldExpression(args[i]);
+            }
         }
     }
 }

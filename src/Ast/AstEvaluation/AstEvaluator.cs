@@ -205,7 +205,6 @@ namespace Blaise2.Ast
                 Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
                 return false;
             }
-            ExpressionFolder.Visit(node);
             return valid;
         }
 
@@ -217,7 +216,6 @@ namespace Blaise2.Ast
                 Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
                 return false;
             }
-            ExpressionFolder.Visit(node);
             return valid;
         }
 
@@ -231,7 +229,6 @@ namespace Blaise2.Ast
                 Errors.Append($"Could not resolve LogicalOperatorNode operands to booleans. Got {node.LeftType} {node.Operator} {node.RightType}.");
                 valid = false;
             }
-            ExpressionFolder.Visit(node);
             return valid;
         }
 
@@ -243,19 +240,12 @@ namespace Blaise2.Ast
                 Errors.Append($"Could not resolve Not operand to a boolean. Got {node.Expression.GetExprType()}.");
                 return false;
             }
-            ExpressionFolder.Visit(node);
             return valid;
         }
 
         private static bool Evaluate(FunctionCallNode node)
         {
-            var valid = true;
-            for (int i = 0; i < node.Arguments.Count; i++)
-            {
-                valid = valid & Evaluate((dynamic)node.Arguments[i]);
-            }
-            //Evaluate can modify the underlying collection with constant folding, thus cannot live in an Aggregate or foreach.
-            //For later, separate the constant folding into a separate visitor that runs as a subsequent pass.
+            var valid = node.Arguments.Aggregate(true, (valid, arg) => valid = valid & Evaluate((dynamic)arg));
             node.CallTarget = ReferenceResolver.FindFunction(node, node.Identifier, node.IsFunction);
             if (node.CallTarget is null)
             {
