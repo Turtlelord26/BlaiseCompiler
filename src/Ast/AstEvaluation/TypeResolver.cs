@@ -7,7 +7,7 @@ namespace Blaise2.Ast
 {
     public class TypeResolver
     {
-        public static BlaiseType ResolveType(AbstractAstNode expressionNode) => expressionNode switch
+        public static BlaiseType ResolveType(AbstractTypedAstNode expressionNode) => expressionNode switch
         {
             LogicalOpNode node => ResolveType(node),
             BooleanOpNode node => ResolveType(node),
@@ -27,8 +27,8 @@ namespace Blaise2.Ast
         {
             if (node.ExprType is null)
             {
-                node.LeftType = ResolveType((dynamic)node.Left);
-                node.RightType = ResolveType((dynamic)node.Right);
+                node.LeftType = ResolveType(node.Left);
+                node.RightType = ResolveType(node.Right);
                 node.ExprType = GetPromotedBinaryOpType(node.LeftType, node.RightType, node.Operator);
             }
             return node.ExprType;
@@ -38,8 +38,8 @@ namespace Blaise2.Ast
         {
             if (node.ExprType is null)
             {
-                node.LeftType = ResolveType((dynamic)node.Left);
-                node.RightType = ResolveType((dynamic)node.Right);
+                node.LeftType = ResolveType(node.Left);
+                node.RightType = ResolveType(node.Right);
                 node.ExprType = ValidateBooleanTypeOrErrorType(node.LeftType, node.RightType);
             }
             return node.ExprType;
@@ -49,8 +49,8 @@ namespace Blaise2.Ast
         {
             if (node.ExprType is null)
             {
-                node.LeftType = ResolveType((dynamic)node.Left);
-                node.RightType = ResolveType((dynamic)node.Right);
+                node.LeftType = ResolveType(node.Left);
+                node.RightType = ResolveType(node.Right);
                 node.ExprType = new()
                 {
                     BasicType = BOOLEAN
