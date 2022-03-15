@@ -59,7 +59,7 @@ namespace Blaise2
                     throw new InvalidOperationException(string.Join("\n", AstEvaluator.Errors));
                 }
 
-                Cil = new CilEmitter().Visit(Ast);
+                Cil = new CilEmitter().EmitCil(Ast);
 
                 return true;
             }

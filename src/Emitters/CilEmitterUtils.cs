@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Generic;
 using Blaise2.Ast;
-using static Blaise2.Ast.AstNodeExtensions;
 using static Blaise2.Ast.BlaiseOperator;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
@@ -8,10 +8,6 @@ namespace Blaise2.Emitters
 {
     public partial class CilEmitter
     {
-        private int labelNum = 0;
-
-        private int anonymousVarNum = 0;
-
         private static string Preamble()
         {
             return @"
@@ -36,10 +32,6 @@ namespace Blaise2.Emitters
 } // end of class
 ";
         }
-
-        private string MakeLabel() => $"Label{labelNum++}";
-
-        private string MakeAnonymousVar() => $"___AnonVar_{anonymousVarNum++}";
 
         private static string ToCilOperator(BlaiseOperator op, BlaiseType operandType) => (op, operandType.BasicType) switch
         {
@@ -89,6 +81,8 @@ namespace Blaise2.Emitters
             _ => throw new InvalidOperationException($"Invalid Binary Operator {op}")
         };
 
+        private string MakeLabel() => LabelFactory.MakeLabel();
+
         private string TypeConvert(BlaiseType currentType, BlaiseType targetType, AbstractAstNode opContainer)
         {
             return targetType.BasicType switch
@@ -120,24 +114,24 @@ namespace Blaise2.Emitters
     call instance string [System.Private.CoreLib]System.{systemType}::ToString()";
         }
 
-        private string MakeAndInjectLocalVar(BlaiseType varType, AbstractAstNode container)
+        private string MakeAndInjectLocalVar(BlaiseType varType, AbstractAstNode parent)
         {
-            var identifier = MakeAnonymousVar();
-            var decl = new VarDeclNode()
-            {
-                Identifier = identifier,
-                BlaiseType = varType.DeepCopy()
-            };
-            switch (GetContainingFunctionOrProgram(container))
+            var decl = VarFactory.MakeLocalVar(varType);
+            InjectLocalVariableIntoContainer(decl, parent);
+            return decl.Identifier;
+        }
+
+        private void InjectLocalVariableIntoContainer(VarDeclNode decl, AbstractAstNode parent)
+        {
+            switch (GetContainingFunctionOrProgram(parent))
             {
                 case FunctionNode func:
                     func.VarDecls.Add(decl);
-                    break;
+                    return;
                 case ProgramNode:
                     MainLocals.Add(decl);
-                    break;
+                    return;
             }
-            return identifier;
         }
 
         private static ProgramNode GetContainingFunctionOrProgram(AbstractAstNode climber) => climber switch
@@ -148,11 +142,11 @@ namespace Blaise2.Emitters
         };
 
         private static string EmitBranchToEndLabelUnlessStatReturns(string endLabel, AbstractAstNode stat) =>
-                FunctionReturnEvaluator.Visit(stat) ? ""
-                                                    : $"br.s {endLabel}";
+            FunctionReturnEvaluator.Visit(stat) ? ""
+                                                : $"br.s {endLabel}";
 
         private static string EmitLabelUnlessStatReturns(string label, AbstractAstNode stat) =>
-                FunctionReturnEvaluator.Visit(stat) ? ""
-                                                    : $"{label}: nop";
+            FunctionReturnEvaluator.Visit(stat) ? ""
+                                                : $"{label}: nop";
     }
 }
