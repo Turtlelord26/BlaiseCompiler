@@ -132,18 +132,18 @@ namespace Blaise2.Ast
             n.Body = VisitStat(context.st).WithParent(n);
         });
 
-        public override AbstractAstNode VisitForDo([NotNull] BlaiseParser.ForDoContext context) => Build<ForLoopNode>(forNode =>
+        public override AbstractAstNode VisitForDo([NotNull] BlaiseParser.ForDoContext context) => Build<ForLoopNode>(n =>
         {
             var down = context.direction.Text.Equals("downto");
-            forNode.LoopType = For;
-            forNode.Assignment = (AssignmentNode)VisitAssignment(context.init).WithParent(forNode);
-            forNode.Condition = Build<BooleanOpNode>(condition =>
+            n.LoopType = For;
+            n.Assignment = (AssignmentNode)VisitAssignment(context.init).WithParent(n);
+            n.Condition = Build<BooleanOpNode>(condition =>
             {
-                condition.Left = Build<VarRefNode>(v => v.Identifier = forNode.Assignment.Identifier).WithParent(condition);
+                condition.Left = Build<VarRefNode>(v => v.Identifier = n.Assignment.Identifier).WithParent(condition);
                 condition.Right = (AbstractTypedAstNode)VisitExpression(context.limit).WithParent(condition);
                 condition.Operator = down ? BlaiseOperator.Gt : BlaiseOperator.Lt;
-            }).WithParent(forNode);
-            forNode.Body = CombineIntoBlock(VisitStat(context.st), MakeIteratorNode(forNode, down)).WithParent(forNode);
+            }).WithParent(n);
+            n.Body = CombineIntoBlock(VisitStat(context.st), MakeIteratorNode(n, down)).WithParent(n);
         });
 
         public override AbstractAstNode VisitRepeatUntil([NotNull] BlaiseParser.RepeatUntilContext context) => Build<LoopNode>(n =>
