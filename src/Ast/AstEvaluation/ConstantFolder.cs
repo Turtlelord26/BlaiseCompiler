@@ -33,40 +33,44 @@ namespace Blaise2.Ast
         {
             switch (node)
             {
-                case BinaryOpNode bin:
-                    FoldExpression(bin.Left);
-                    FoldExpression(bin.Right);
-                    var folded = FoldBinary(bin);
-                    if (!folded.IsEmpty())
-                    {
-                        Hoist(bin, folded);
-                    }
-                    return;
-                case NotOpNode not:
-                    FoldExpression(not.Expression);
-                    if (not.Expression is BooleanNode)
-                    {
-                        var boolnode = (BooleanNode)not.Expression;
-                        boolnode.BoolValue = !boolnode.BoolValue;
-                        Hoist(not, boolnode);
-                    }
-                    return;
+                case BinaryOpNode bin: FoldBinaryOp(bin); return;
+                case NotOpNode not: FoldNotOp(not); return;
                 case FunctionCallNode
-                    or IntegerNode
-                    or RealNode
-                    or VarRefNode
-                    or BooleanNode
-                    or CharNode
-                    or StringNode:
+                or IntegerNode
+                or RealNode
+                or VarRefNode
+                or BooleanNode
+                or CharNode
+                or StringNode:
                     return;
-                case AbstractTypedAstNode atan when atan.IsEmpty():
-                    return;
-                default:
-                    throw new InvalidOperationException($"Invalid node type {node.GetType()} detected during Expression Evaluation");
+                case AbstractTypedAstNode atan when atan.IsEmpty(): return;
+                default: throw new InvalidOperationException($"Invalid node type {node.GetType()} detected during Expression Evaluation");
             }
         }
 
-        private static AbstractTypedAstNode FoldBinary(BinaryOpNode node)
+        private static void FoldBinaryOp(BinaryOpNode node)
+        {
+            FoldExpression(node.Left);
+            FoldExpression(node.Right);
+            var folded = FoldBinaryValues(node);
+            if (!folded.IsEmpty())
+            {
+                Hoist(node, folded);
+            }
+        }
+
+        private static void FoldNotOp(NotOpNode node)
+        {
+            FoldExpression(node.Expression);
+            if (node.Expression is BooleanNode)
+            {
+                var boolnode = (BooleanNode)node.Expression;
+                boolnode.BoolValue = !boolnode.BoolValue;
+                Hoist(node, boolnode);
+            }
+        }
+
+        private static AbstractTypedAstNode FoldBinaryValues(BinaryOpNode node)
         {
             if (node.Left is not IConstantNode | node.Right is not IConstantNode)
             {
