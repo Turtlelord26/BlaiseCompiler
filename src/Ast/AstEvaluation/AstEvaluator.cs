@@ -10,16 +10,16 @@ namespace Blaise2.Ast
     {
         public static List<string> Errors { get; private set; } = new();
 
-        public static bool EvaluateAst(AbstractAstNode node) => Evaluate((dynamic)node);
+        public static bool EvaluateAst(ProgramNode node) => Evaluate(node);
 
         private static bool Evaluate(ProgramNode node)
         {
-            var valid = node.VarDecls.Aggregate(true, (valid, next) => valid & Evaluate(next))
+            var valid = node.VarDecls.Aggregate(true, (valid, decl) => valid & Evaluate(decl))
                         & ContainsNoDuplicateVariables(node.VarDecls)
                         & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
-                        & node.Procedures.Aggregate(true, (valid, next) => valid & Evaluate(next))
-                        & node.Functions.Aggregate(true, (valid, next) => valid & Evaluate(next))
-                        & Evaluate((dynamic)node.Stat);
+                        & node.Procedures.Aggregate(true, (valid, proc) => valid & Evaluate(proc))
+                        & node.Functions.Aggregate(true, (valid, func) => valid & Evaluate(func))
+                        & EvaluateStat(node.Stat);
             if (BlaiseKeywords.IsKeyword(node.Identifier))
             {
                 Errors.Append($"{node.Identifier} is a reserved word and cannot be used as a program identifier.");
@@ -38,15 +38,15 @@ namespace Blaise2.Ast
             return true;
         }
 
-        private static bool Evaluate(BlockNode node) => node.Stats.Aggregate(true, (valid, next) => valid & Evaluate((dynamic)next));
+        private static bool Evaluate(BlockNode node) => node.Stats.Aggregate(true, (valid, stat) => valid & EvaluateStat(stat));
 
-        private static bool Evaluate(WriteNode node) => Evaluate((dynamic)node.Expression);
+        private static bool Evaluate(WriteNode node) => EvaluateExpression(node.Expression);
 
         private static bool Evaluate(AssignmentNode node)
         {
             node.VarInfo = ReferenceResolver.FindVariable(node, node.Identifier);
             var valid = node.VarInfo is not null
-                 & Evaluate((dynamic)node.Expression);
+                 & EvaluateExpression(node.Expression);
             var varType = node.VarInfo?.VarDecl.BlaiseType;
             if (varType is null)
             {
@@ -83,9 +83,9 @@ namespace Blaise2.Ast
             valid = valid
                 & ContainsNoDuplicateVariables(varDecls)
                 & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
-                & node.Procedures.Aggregate(true, (valid, next) => valid & Evaluate(next))
-                & node.Functions.Aggregate(true, (valid, next) => valid & Evaluate(next))
-                & Evaluate((dynamic)node.Stat);
+                & node.Procedures.Aggregate(true, (valid, proc) => valid & Evaluate(proc))
+                & node.Functions.Aggregate(true, (valid, func) => valid & Evaluate(func))
+                & EvaluateStat(node.Stat);
             if (BlaiseKeywords.IsKeyword(node.Identifier))
             {
                 Errors.Append($"{node.Identifier} is a reserved word and cannot be used as a function identifier.");
@@ -114,9 +114,9 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(IfNode node)
         {
-            var valid = Evaluate((dynamic)node.Condition)
-                    & Evaluate((dynamic)node.ThenStat)
-                    & Evaluate((dynamic)node.ElseStat);
+            var valid = EvaluateExpression(node.Condition)
+                    & EvaluateStat(node.ThenStat)
+                    & EvaluateStat(node.ElseStat);
             if (TypeResolver.ResolveType(node.Condition).BasicType != BOOLEAN)
             {
                 Errors.Append("Cannot resolve if condition to a bool.");
@@ -127,8 +127,8 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(LoopNode node)
         {
-            var valid = Evaluate((dynamic)node.Condition)
-                      & Evaluate((dynamic)node.Body);
+            var valid = EvaluateExpression(node.Condition)
+                      & EvaluateStat(node.Body);
             if ((node.Condition as AbstractTypedAstNode).GetExprType().BasicType != BOOLEAN)
             {
                 Errors.Append("Cannot resolve loop condition to a bool.");
@@ -142,20 +142,20 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(SwitchNode node)
         {
-            var valid = Evaluate((dynamic)node.Input);
+            var valid = EvaluateExpression(node.Input);
             var inType = TypeResolver.ResolveType(node.Input);
             valid = inType.IsValid()
-                    & node.Cases.Aggregate(true, (valid, next) => valid & Evaluate(next));
+                    & node.Cases.Aggregate(true, (valid, caseNode) => valid & Evaluate(caseNode));
             if (!node.Default.IsEmpty())
             {
-                valid = valid & Evaluate((dynamic)node.Default);
+                valid = valid & EvaluateStat(node.Default);
             }
             if (!IsValidSwitchInput(inType))
             {
                 Errors.Append($"{inType} is not a valid case statement input type.");
                 return false;
             };
-            var typesMatch = node.Cases.Aggregate(true, (valid, next) => valid & TypeResolver.ResolveType(next.Case).Equals(inType));
+            var typesMatch = node.Cases.Aggregate(true, (valid, caseNode) => valid & TypeResolver.ResolveType(caseNode.Case).Equals(inType));
             if (!typesMatch)
             {
                 Errors.Append($"Case alternative type mismatch, expected {inType}.");
@@ -166,13 +166,13 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(SwitchCaseNode node)
         {
-            return Evaluate((dynamic)node.Case)
-                & Evaluate((dynamic)node.Stat);
+            return EvaluateExpression(node.Case)
+                & EvaluateStat(node.Stat);
         }
 
         private static bool Evaluate(ReturnNode node)
         {
-            var valid = Evaluate((dynamic)node.Expression);
+            var valid = EvaluateExpression(node.Expression);
             var containingFunction = GetContainingFunction(node.Parent);
             if (containingFunction is not FunctionNode)
             {
@@ -199,7 +199,7 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(BinaryOpNode node)
         {
-            var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
+            var valid = EvaluateExpression(node.Left) & EvaluateExpression(node.Right);
             if (!TypeResolver.ResolveType(node).IsValid())
             {
                 Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
@@ -210,7 +210,7 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(BooleanOpNode node)
         {
-            var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
+            var valid = EvaluateExpression(node.Left) & EvaluateExpression(node.Right);
             if (!TypeResolver.ResolveType(node).IsValid())
             {
                 Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
@@ -221,7 +221,7 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(LogicalOpNode node)
         {
-            var valid = Evaluate((dynamic)node.Left) & Evaluate((dynamic)node.Right);
+            var valid = EvaluateExpression(node.Left) & EvaluateExpression(node.Right);
             if (!TypeResolver.ResolveType(node).IsValid()
                 | node.LeftType.BasicType is not BOOLEAN
                 | node.RightType.BasicType is not BOOLEAN)
@@ -234,7 +234,7 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(NotOpNode node)
         {
-            var valid = Evaluate((dynamic)node.Expression);
+            var valid = EvaluateExpression(node.Expression);
             if (TypeResolver.ResolveType(node.Expression).BasicType != BOOLEAN)
             {
                 Errors.Append($"Could not resolve Not operand to a boolean. Got {node.Expression.GetExprType()}.");
@@ -245,7 +245,7 @@ namespace Blaise2.Ast
 
         private static bool Evaluate(FunctionCallNode node)
         {
-            var valid = node.Arguments.Aggregate(true, (valid, arg) => valid = valid & Evaluate((dynamic)arg));
+            var valid = node.Arguments.Aggregate(true, (valid, arg) => valid = valid & EvaluateExpression(arg));
             node.CallTarget = ReferenceResolver.FindFunction(node, node.Identifier, node.IsFunction);
             if (node.CallTarget is null)
             {
@@ -260,12 +260,6 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(IntegerNode node) => true;
-
-        private static bool Evaluate(RealNode node) => true;
-
-        private static bool Evaluate(BooleanNode node) => true;
-
         private static bool Evaluate(VarRefNode node)
         {
             node.VarInfo = ReferenceResolver.FindVariable(node, node.Identifier);
@@ -277,11 +271,36 @@ namespace Blaise2.Ast
             return true;
         }
 
-        private static bool Evaluate(CharNode node) => true;
+        private static bool EvaluateStat(AbstractAstNode stat) => stat switch
+        {
+            BlockNode block => Evaluate(block),
+            WriteNode write => Evaluate(write),
+            AssignmentNode assign => Evaluate(assign),
+            IfNode ifn => Evaluate(ifn),
+            ForLoopNode forl => Evaluate(forl),
+            LoopNode loop => Evaluate(loop),
+            SwitchNode switcher => Evaluate(switcher),
+            ReturnNode ret => Evaluate(ret),
+            FunctionCallNode call => Evaluate(call),
+            AbstractAstNode aan when aan.IsEmpty() => true,
+            _ => throw new InvalidOperationException($"Unexpected node type {stat.GetType()} encountered during Ast evaluation.")
+        };
 
-        private static bool Evaluate(StringNode node) => true;
-
-        private static bool Evaluate(AbstractAstNode node) => node.IsEmpty() ? true
-            : throw new InvalidOperationException($"Unrecognized node type {node.GetType()}");
+        private static bool EvaluateExpression(AbstractTypedAstNode expr) => expr switch
+        {
+            LogicalOpNode logop => Evaluate(logop),
+            BooleanOpNode boolop => Evaluate(boolop),
+            BinaryOpNode binop => Evaluate(binop),
+            NotOpNode notop => Evaluate(notop),
+            FunctionCallNode call => Evaluate(call),
+            VarRefNode varref => Evaluate(varref),
+            IntegerNode => true,
+            RealNode => true,
+            BooleanNode => true,
+            CharNode => true,
+            StringNode => true,
+            AbstractTypedAstNode atan when atan.IsEmpty() => true,
+            _ => throw new InvalidOperationException($"Invalid node type {expr.GetType()} detected during Ast Evaluation")
+        };
     }
 }
