@@ -29,52 +29,45 @@ namespace Blaise2.Ast
             }
         }
 
-        private static void FoldExpression(AbstractTypedAstNode node)
+        private static AbstractTypedAstNode FoldExpression(AbstractTypedAstNode node) => node switch
         {
-            switch (node)
-            {
-                case BinaryOpNode bin: FoldBinaryOp(bin); return;
-                case NotOpNode not: FoldNotOp(not); return;
-                case FunctionCallNode
-                or IntegerNode
-                or RealNode
-                or VarRefNode
-                or BooleanNode
-                or CharNode
-                or StringNode:
-                    return;
-                case AbstractTypedAstNode atan when atan.IsEmpty(): return;
-                default: throw new InvalidOperationException($"Invalid node type {node.GetType()} detected during Expression Evaluation");
-            }
+            BinaryOpNode bin => FoldBinaryOp(bin),
+            NotOpNode not => FoldNotOp(not),
+            FunctionCallNode
+            or IntegerNode
+            or RealNode
+            or VarRefNode
+            or BooleanNode
+            or CharNode
+            or StringNode => node,
+            AbstractTypedAstNode atan when atan.IsEmpty() => (AbstractTypedAstNode)AbstractAstNode.Empty,
+            _ => throw new InvalidOperationException($"Invalid node type {node.GetType()} detected during Expression Evaluation")
+        };
+
+        private static AbstractTypedAstNode FoldBinaryOp(BinaryOpNode node)
+        {
+            node.Left = FoldExpression(node.Left);
+            node.Right = FoldExpression(node.Right);
+            return FoldBinaryValues(node);
         }
 
-        private static void FoldBinaryOp(BinaryOpNode node)
+        private static AbstractTypedAstNode FoldNotOp(NotOpNode node)
         {
-            FoldExpression(node.Left);
-            FoldExpression(node.Right);
-            var folded = FoldBinaryValues(node);
-            if (!folded.IsEmpty())
-            {
-                Hoist(node, folded);
-            }
-        }
-
-        private static void FoldNotOp(NotOpNode node)
-        {
-            FoldExpression(node.Expression);
+            node.Expression = FoldExpression(node.Expression);
             if (node.Expression is BooleanNode)
             {
                 var boolnode = (BooleanNode)node.Expression;
                 boolnode.BoolValue = !boolnode.BoolValue;
-                Hoist(node, boolnode);
+                return boolnode;
             }
+            return node;
         }
 
         private static AbstractTypedAstNode FoldBinaryValues(BinaryOpNode node)
         {
             if (node.Left is not IConstantNode | node.Right is not IConstantNode)
             {
-                return (AbstractTypedAstNode)AbstractAstNode.Empty;
+                return node;
             }
             dynamic leftValue = (node.Left as IConstantNode).GetValue();
             dynamic rightValue = (node.Right as IConstantNode).GetValue();
@@ -108,51 +101,6 @@ namespace Blaise2.Ast
             };
         }
 
-        private static void Hoist(AbstractTypedAstNode oldParent, AbstractTypedAstNode child)
-        {
-            var newParent = oldParent.Parent;
-            switch (newParent)
-            {
-                case WriteNode write when write.Expression == oldParent:
-                    write.Expression = child;
-                    break;
-                case AssignmentNode assignment when assignment.Expression == oldParent:
-                    assignment.Expression = child;
-                    break;
-                case IfNode ifn when ifn.Condition == oldParent:
-                    ifn.Condition = child;
-                    break;
-                case LoopNode loop when loop.Condition == oldParent:
-                    loop.Condition = child;
-                    break;
-                case SwitchNode switchn when switchn.Input == oldParent:
-                    switchn.Input = child;
-                    break;
-                case SwitchCaseNode switchCase when switchCase.Case == oldParent:
-                    switchCase.Case = child;
-                    break;
-                case ReturnNode ret when ret.Expression == oldParent:
-                    ret.Expression = child;
-                    break;
-                case BinaryOpNode bin when bin.Left == oldParent:
-                    bin.Left = child;
-                    break;
-                case BinaryOpNode bin when bin.Right == oldParent:
-                    bin.Right = child;
-                    break;
-                case NotOpNode not when not.Expression == oldParent:
-                    not.Expression = child;
-                    break;
-                case FunctionCallNode call when call.Arguments.Contains(oldParent):
-                    var argIndex = call.Arguments.FindIndex(a => a == oldParent);
-                    call.Arguments[argIndex] = child;
-                    break;
-                default:
-                    throw new InvalidOperationException($"Hoist error: old parent {oldParent.Type} not a child of new parent {newParent.Type}, or new parent node type not recognized.");
-            }
-            child.Parent = newParent;
-        }
-
         private static void FoldProgram(ProgramNode node)
         {
             foreach (var routine in node.Procedures.Concat(node.Functions))
@@ -164,20 +112,20 @@ namespace Blaise2.Ast
 
         private static void FoldBlock(BlockNode node) => node.Stats.ForEach(stat => FoldStat(stat));
 
-        private static void FoldWrite(WriteNode node) => FoldExpression(node.Expression);
+        private static void FoldWrite(WriteNode node) => node.Expression = FoldExpression(node.Expression);
 
-        private static void FoldAssignment(AssignmentNode node) => FoldExpression(node.Expression);
+        private static void FoldAssignment(AssignmentNode node) => node.Expression = FoldExpression(node.Expression);
 
         private static void FoldIf(IfNode node)
         {
-            FoldExpression(node.Condition);
+            node.Condition = FoldExpression(node.Condition);
             FoldStat(node.ThenStat);
             FoldStat(node.ElseStat);
         }
 
         private static void FoldLoop(LoopNode node)
         {
-            FoldExpression(node.Condition);
+            node.Condition = FoldExpression(node.Condition);
             FoldStat(node.Body);
         }
 
@@ -189,22 +137,22 @@ namespace Blaise2.Ast
 
         private static void FoldSwitch(SwitchNode node)
         {
-            FoldExpression(node.Input);
+            node.Input = FoldExpression(node.Input);
             foreach (var swc in node.Cases)
             {
                 FoldStat(swc.Stat);
             }
         }
 
-        private static void FoldReturn(ReturnNode node) => FoldExpression(node.Expression);
+        private static void FoldReturn(ReturnNode node) => node.Expression = FoldExpression(node.Expression);
 
         private static void FoldCall(FunctionCallNode node)
         {
-            //Cannot use a foreach loop or linq function here, because FoldExpression modifies the underlying collection.
+            //Cannot use a foreach loop or linq function here, because we are potentially modifying the underlying collection.
             var args = node.Arguments;
             for (int i = 0; i < args.Count; i++)
             {
-                FoldExpression(args[i]);
+                args[i] = FoldExpression(args[i]);
             }
         }
     }
