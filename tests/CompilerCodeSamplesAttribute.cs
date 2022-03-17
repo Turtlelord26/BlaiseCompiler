@@ -86,9 +86,9 @@ Term 19: 4181" };
             yield return new object[] { "Can do basic logical ops", @"
                 program Logic;
                 begin
-                    write( ! 3 < 2 & 1 <> 2 );
+                    write( not 3 < 2 and 1 <> 2 );
                     write(' ');
-                    write( false | 3.14 = 3.141592653589793238462643383279 & true );
+                    write( false or 3.14 = 3.141592653589793238462643383279 and true );
                 end.
             ",
             "True False" };

@@ -193,8 +193,6 @@ CHAR
 BOOLEAN
 	: 'true'
 	| 'false';
-IDENTIFIER
-	: VALID_ID_START VALID_ID_CHAR*;
 LPAREN
 	: '(';
 RPAREN
@@ -217,13 +215,15 @@ COMP
 POW
 	: '^';
 AND
-	: '&';
+	: 'and';
 OR
-	: '|';
+	: 'or';
 NOT
-	: '!';
+	: 'not';
 SEMI
 	: ';';
+IDENTIFIER
+	: VALID_ID_START VALID_ID_CHAR*;
 
 WS
 	: [ \r\n\t]+ -> channel(HIDDEN);
