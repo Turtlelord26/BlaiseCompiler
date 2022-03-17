@@ -47,7 +47,6 @@ namespace Blaise2
                 if (Ast == null) { return false; }
 
                 var valid = AstEvaluator.EvaluateAst(Ast);
-                ConstantFolder.FoldConstants(Ast);
 
                 var renderer = new DotRenderer("./expr.dot");
                 renderer.Visualize(Ast);
@@ -58,6 +57,11 @@ namespace Blaise2
                     Console.WriteLine(string.Join("\n", AstEvaluator.Errors));
                     throw new InvalidOperationException(string.Join("\n", AstEvaluator.Errors));
                 }
+
+                AstFolder.FoldAst(Ast);
+                var foldedRenderer = new DotRenderer("./expr.dot");
+                foldedRenderer.Visualize(Ast);
+                foldedRenderer.Close();
 
                 Cil = new CilEmitter().EmitCil(Ast);
 

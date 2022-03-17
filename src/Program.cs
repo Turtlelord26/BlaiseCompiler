@@ -7,16 +7,21 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
-                program Logic;
+            program DegenerateIf;
 
-                var x : integer;
-
-                begin
-                    write( not 3 < 2 and 1 <> 2 );
-                    write(' ');
-                    write( false or 3.14 = 3.141592653589793238462643383279 and true );
-                end.
-            ");
+            begin
+                if (true) 
+                then 
+                    write(3); 
+                else 
+                    write(4);
+                if (false)
+                then
+                    write(7);
+                else
+                    write(0);
+            end.
+                ");
         }
 
         static void Try(string input)

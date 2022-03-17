@@ -137,8 +137,24 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(ForLoopNode node) => Evaluate((LoopNode)node)
-                                                        & Evaluate(node.Assignment);
+        private static bool Evaluate(ForLoopNode node)
+        {
+            var valid = Evaluate((LoopNode)node)
+                      & Evaluate(node.Assignment);
+            var iterType = node.Assignment.VarInfo.VarDecl.BlaiseType.BasicType;
+            if (iterType is not INTEGER)
+            {
+                Errors.Append($"For loop iterator must be of type integer, but is {iterType}.");
+                valid = false;
+            }
+            var limitType = (node.Condition as BooleanOpNode).Right.GetExprType().BasicType;
+            if (limitType is not INTEGER)
+            {
+                Errors.Append($"For loop limit must be of type integer, but is {limitType}.");
+                valid = false;
+            }
+            return valid;
+        }
 
         private static bool Evaluate(SwitchNode node)
         {

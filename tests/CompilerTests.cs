@@ -582,5 +582,103 @@ namespace Blaise2.Tests
             // Assert
             Assert.AreEqual("1.1", result);
         }
+
+        [TestMethod]
+        public void CanCollapseDegenerateSwitch()
+        {
+            // Arrange
+            const string src = @"
+                program DegenerateSwitch;
+
+                begin
+                    case (6) of 
+                        1 : write(2);
+                        2 : write(4);
+                        6 : write(8);
+                    end;
+                end.
+            ";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.IsFalse(compiler.Cil.Contains("beq"));
+            Assert.IsFalse(compiler.Cil.Contains("switch"));
+            Assert.AreEqual("8", result);
+        }
+
+        [TestMethod]
+        public void CanCollapseDegenerateIf()
+        {
+            // Arrange
+            const string src = @"
+                program DegenerateIf;
+
+                begin
+                    if (true) 
+                    then 
+                        write(3); 
+                    else 
+                        write(4);
+                    if (false)
+                    then
+                        write(7);
+                    else
+                        write(0);
+                end.
+                ";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.IsFalse(compiler.Cil.Contains("brtrue"));
+            Assert.IsFalse(compiler.Cil.Contains("brfalse"));
+            Assert.AreEqual("30", result);
+        }
+
+        [TestMethod]
+        public void CanCollapseDegenerateLoops()
+        {
+            // Arrange
+            const string src = @"
+                program DegenerateLoops;
+
+                var x : integer;
+
+                begin
+                    while false do
+                        write(3);
+                    repeat
+                        write(4);
+                        write(5);
+                    until true;
+                    for x := 1 downto 1 do
+                        write(x);
+                    for x := 10 to 10 do
+                        write(x);
+                    write(x);
+                end.
+                ";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.IsFalse(compiler.Cil.Contains("br.s"));
+            Assert.IsFalse(compiler.Cil.Contains("brtrue"));
+            Assert.IsFalse(compiler.Cil.Contains("brfalse"));
+            Assert.AreEqual("4510", result);
+        }
     }
 }
