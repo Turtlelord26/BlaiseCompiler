@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using static Blaise2.Ast.BlaiseOperator;
 using static Blaise2.Ast.BlaiseTypeEnum;
@@ -72,19 +71,21 @@ namespace Blaise2.Ast
             switch (initExpr)
             {
                 case IConstantNode icn:
-                    dynamic initValue = icn.GetValue();
+                    var astConstant = icn.GetConstant();
+                    var initValue = icn.GetConstant();
                     var op = condition.Operator;
                     var limit = condition.Right;
                     if (limit is not IConstantNode)
                     {
                         goto default;
                     }
-                    var constLimit = (limit as IConstantNode).GetValue();
-                    if (op is Gt & initValue <= constLimit)
+                    var constLimit = (limit as IConstantNode).GetConstant();
+                    var comparer = new AstConstantComparer();
+                    if (op is Gt & comparer.Compare(initValue, constLimit) <= 0)
                     {
                         return node.Assignment;
                     }
-                    else if (op is Lt & initValue >= constLimit)
+                    else if (op is Lt & comparer.Compare(initValue, constLimit) >= 0)
                     {
                         return node.Assignment;
                     }
@@ -104,8 +105,9 @@ namespace Blaise2.Ast
             switch (node.Input)
             {
                 case IConstantNode icn:
-                    dynamic value = icn.GetValue();
-                    var matchingCase = node.Cases.Where(c => (c.Case as IConstantNode).GetValue() == value).FirstOrDefault();
+                    var comparer = new AstConstantComparer();
+                    var value = icn.GetConstant();
+                    var matchingCase = node.Cases.Where(c => comparer.Compare((c.Case as IConstantNode).GetConstant(), value) == 0).FirstOrDefault();
                     if (matchingCase is not null)
                     {
                         return matchingCase.Stat;
@@ -153,34 +155,34 @@ namespace Blaise2.Ast
             {
                 return node;
             }
-            dynamic leftValue = (node.Left as IConstantNode).GetValue();
-            dynamic rightValue = (node.Right as IConstantNode).GetValue();
+            var leftValue = (node.Left as IConstantNode).GetConstant();
+            var rightValue = (node.Right as IConstantNode).GetConstant();
             return (node.Operator, node.GetExprType().BasicType) switch
             {
-                (Pow, CHAR) => new CharNode() { CharValue = (char)Math.Pow((double)leftValue, (double)rightValue) },
-                (Add, CHAR) => new CharNode() { CharValue = leftValue + rightValue },
-                (Sub, CHAR) => new CharNode() { CharValue = leftValue - rightValue },
-                (Mul, CHAR) => new CharNode() { CharValue = leftValue * rightValue },
-                (Div, CHAR) => new CharNode() { CharValue = leftValue / rightValue },
-                (Pow, INTEGER) => new IntegerNode() { IntValue = (int)Math.Pow((double)leftValue, (double)rightValue) },
-                (Add, INTEGER) => new IntegerNode() { IntValue = leftValue + rightValue },
-                (Sub, INTEGER) => new IntegerNode() { IntValue = leftValue - rightValue },
-                (Mul, INTEGER) => new IntegerNode() { IntValue = leftValue * rightValue },
-                (Div, INTEGER) => new IntegerNode() { IntValue = leftValue / rightValue },
-                (Pow, REAL) => new RealNode() { RealValue = Math.Pow((double)leftValue, (double)rightValue) },
-                (Add, REAL) => new RealNode() { RealValue = leftValue + rightValue },
-                (Sub, REAL) => new RealNode() { RealValue = leftValue - rightValue },
-                (Mul, REAL) => new RealNode() { RealValue = leftValue * rightValue },
-                (Div, REAL) => new RealNode() { RealValue = leftValue / rightValue },
-                (Add, STRING) => new StringNode() { StringValue = leftValue + rightValue },
-                (Gt, _) => new BooleanNode() { BoolValue = leftValue > rightValue },
-                (Lt, _) => new BooleanNode() { BoolValue = leftValue < rightValue },
-                (Eq, _) => new BooleanNode() { BoolValue = leftValue == rightValue },
-                (Gte, _) => new BooleanNode() { BoolValue = leftValue >= rightValue },
-                (Lte, _) => new BooleanNode() { BoolValue = leftValue <= rightValue },
-                (Ne, _) => new BooleanNode() { BoolValue = leftValue != rightValue },
-                (And, _) => new BooleanNode() { BoolValue = leftValue & rightValue },
-                (Or, _) => new BooleanNode() { BoolValue = leftValue | rightValue },
+                (Pow, CHAR) => new CharNode() { CharValue = (char)Math.Pow(leftValue.GetValueAsReal(), rightValue.GetValueAsReal()) },
+                (Add, CHAR) => new CharNode() { CharValue = (char)(leftValue.GetValueAsChar() + rightValue.GetValueAsChar()) },
+                (Sub, CHAR) => new CharNode() { CharValue = (char)(leftValue.GetValueAsChar() - rightValue.GetValueAsChar()) },
+                (Mul, CHAR) => new CharNode() { CharValue = (char)(leftValue.GetValueAsChar() * rightValue.GetValueAsChar()) },
+                (Div, CHAR) => new CharNode() { CharValue = (char)(leftValue.GetValueAsChar() / rightValue.GetValueAsChar()) },
+                (Pow, INTEGER) => new IntegerNode() { IntValue = (int)Math.Pow(leftValue.GetValueAsReal(), rightValue.GetValueAsReal()) },
+                (Add, INTEGER) => new IntegerNode() { IntValue = leftValue.GetValueAsInt() + rightValue.GetValueAsInt() },
+                (Sub, INTEGER) => new IntegerNode() { IntValue = leftValue.GetValueAsInt() - rightValue.GetValueAsInt() },
+                (Mul, INTEGER) => new IntegerNode() { IntValue = leftValue.GetValueAsInt() * rightValue.GetValueAsInt() },
+                (Div, INTEGER) => new IntegerNode() { IntValue = leftValue.GetValueAsInt() / rightValue.GetValueAsInt() },
+                (Pow, REAL) => new RealNode() { RealValue = Math.Pow(leftValue.GetValueAsReal(), rightValue.GetValueAsReal()) },
+                (Add, REAL) => new RealNode() { RealValue = leftValue.GetValueAsReal() + rightValue.GetValueAsReal() },
+                (Sub, REAL) => new RealNode() { RealValue = leftValue.GetValueAsReal() - rightValue.GetValueAsReal() },
+                (Mul, REAL) => new RealNode() { RealValue = leftValue.GetValueAsReal() * rightValue.GetValueAsReal() },
+                (Div, REAL) => new RealNode() { RealValue = leftValue.GetValueAsReal() / rightValue.GetValueAsReal() },
+                (Add, STRING) => new StringNode() { StringValue = leftValue.GetValueAsString() + rightValue.GetValueAsString() },
+                (Gt, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsReal() > rightValue.GetValueAsReal() },
+                (Lt, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsReal() < rightValue.GetValueAsReal() },
+                (Eq, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsReal() == rightValue.GetValueAsReal() },
+                (Gte, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsReal() >= rightValue.GetValueAsReal() },
+                (Lte, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsReal() <= rightValue.GetValueAsReal() },
+                (Ne, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsReal() != rightValue.GetValueAsReal() },
+                (And, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsBool() & rightValue.GetValueAsBool() },
+                (Or, _) => new BooleanNode() { BoolValue = leftValue.GetValueAsBool() | rightValue.GetValueAsBool() },
                 _ => throw new InvalidOperationException($"Detected invalid operator {node.Operator} in Binary node.")
             };
         }

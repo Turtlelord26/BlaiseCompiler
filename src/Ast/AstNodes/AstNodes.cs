@@ -148,7 +148,7 @@ namespace Blaise2.Ast
     {
         public int IntValue { get; set; }
 
-        public dynamic GetValue() => IntValue;
+        public AstConstant GetConstant() => new(IntValue);
 
         public override BlaiseType GetExprType() => new()
         {
@@ -160,7 +160,7 @@ namespace Blaise2.Ast
     {
         public double RealValue { get; set; }
 
-        public dynamic GetValue() => RealValue;
+        public AstConstant GetConstant() => new(RealValue);
 
         public override BlaiseType GetExprType() => new()
         {
@@ -180,7 +180,7 @@ namespace Blaise2.Ast
     {
         public bool BoolValue { get; set; }
 
-        public dynamic GetValue() => BoolValue;
+        public AstConstant GetConstant() => new(BoolValue);
 
         public override BlaiseType GetExprType() => new()
         {
@@ -192,7 +192,7 @@ namespace Blaise2.Ast
     {
         public char CharValue { get; set; }
 
-        public dynamic GetValue() => CharValue;
+        public AstConstant GetConstant() => new(CharValue);
 
         public override BlaiseType GetExprType() => new()
         {
@@ -204,7 +204,7 @@ namespace Blaise2.Ast
     {
         public string StringValue { get; set; }
 
-        public dynamic GetValue() => StringValue;
+        public AstConstant GetConstant() => new(StringValue);
 
         public override BlaiseType GetExprType() => new()
         {
