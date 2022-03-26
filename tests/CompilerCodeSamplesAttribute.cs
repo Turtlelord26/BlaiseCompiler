@@ -102,10 +102,10 @@ Term 19: 4181" };
                     begin
                         x := 1.5;
                         if (x > 1) then
-                            write(1 + ' ');
+                            write(1);
                         else
                             return;
-                        write('Got Here');
+                        write(' Got Here');
                         return;
                     end;
                 
@@ -122,10 +122,10 @@ Term 19: 4181" };
                     begin
                         x := 1.5;
                         if (x > 1) then
-                            write(1 + ' ');
+                            write(1);
                         else
                             return;
-                        write('Got Here');
+                        write(' Got Here');
                     end;
                 
                 DoTheThing().

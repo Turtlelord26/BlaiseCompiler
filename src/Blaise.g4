@@ -184,12 +184,12 @@ INTEGER
 	: INTEGERPART;
 REAL
 	: INTEGERPART '.' DECIMALPART;
+CHAR
+	: '\'' . '\'';
 STRING
 	: '\'' (
 		.*?
 	) '\'';
-CHAR
-	: '\'' . '\'';
 BOOLEAN
 	: 'true'
 	| 'false';

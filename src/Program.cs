@@ -7,21 +7,19 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
-            program DegenerateIf;
+                program CharSwitch;
+                
+                var x : char;
 
-            begin
-                if (true) 
-                then 
-                    write(3); 
-                else 
-                    write(4);
-                if (false)
-                then
-                    write(7);
-                else
-                    write(0);
-            end.
-                ");
+                begin
+                    x := 'a';
+                    case (x) of
+                        'a': write('a');
+                        'c': write('c');
+                        'D': write('D');
+                        'Y': write('Y');
+                    end;
+                end.");
         }
 
         static void Try(string input)
@@ -38,8 +36,6 @@ namespace Blaise2
                 compiler.WriteErrors();
                 Environment.Exit(-1);
             }
-
-            // Console.WriteLine($"  parse tree: {compiler.GetStringTree()}");
 
             Console.WriteLine(compiler.Cil);
 

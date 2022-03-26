@@ -149,4 +149,27 @@ namespace Blaise2.Emitters
             FunctionReturnEvaluator.Visit(stat) ? ""
                                                 : $"{label}: nop";
     }
+
+    class SwitchCaseNodeComparer : IComparer<SwitchCaseNode>
+    {
+        private BlaiseType CaseType;
+
+        public SwitchCaseNodeComparer(BlaiseType caseType) => CaseType = caseType;
+
+        public int Compare(SwitchCaseNode a, SwitchCaseNode b)
+        {
+            return CaseType.BasicType switch
+            {
+                CHAR => (a.Case as IConstantNode).GetConstant().GetValueAsChar()
+                    .CompareTo((b.Case as IConstantNode).GetConstant().GetValueAsChar()),
+                INTEGER => (a.Case as IConstantNode).GetConstant().GetValueAsInt()
+                    .CompareTo((b.Case as IConstantNode).GetConstant().GetValueAsInt()),
+                REAL => (a.Case as IConstantNode).GetConstant().GetValueAsReal()
+                    .CompareTo((b.Case as IConstantNode).GetConstant().GetValueAsReal()),
+                STRING => (a.Case as IConstantNode).GetConstant().GetValueAsString()
+                    .CompareTo((b.Case as IConstantNode).GetConstant().GetValueAsString()),
+                _ => throw new InvalidOperationException($"Invalid switch case type {CaseType} assigned to Case comparer.")
+            };
+        }
+    }
 }

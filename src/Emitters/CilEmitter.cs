@@ -1,21 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Blaise2.Ast;
 using Blaise2.Emitters.EmitterSubcomponents;
-using static Blaise2.Ast.BlaiseTypeEnum;
 using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.VarType;
 
 namespace Blaise2.Emitters
 {
-    [SuppressMessage("Performance", "CA1822", Justification = "all methods must be instance methods to participate in dynamic dispatch")]
     public partial class CilEmitter
     {
         private const string nopDelimiter = @"
     nop";
-        private string Cil = string.Empty;
         private string ProgramName;
         public List<VarDeclNode> MainLocals { get; init; } = new();
         private LabelFactory LabelFactory { get; init; } = new();
@@ -189,79 +185,6 @@ namespace Blaise2.Emitters
         }
 
         private string EmitForLoop(ForLoopNode node) => EmitAssignment(node.Assignment) + EmitLoop(node);
-
-        private string EmitSwitch(SwitchNode node) => node.Input.GetExprType() switch
-        {
-            _ when node.Cases.Count > 7 => EmitCascadedIfSwitch(node),//EmitLargeSwitch(node),
-            { BasicType: CHAR or INTEGER } => EmitCascadedIfSwitch(node),//EmitJumpTableSwitch(node),
-            { BasicType: REAL or STRING } => EmitCascadedIfSwitch(node),
-            BlaiseType type => throw new InvalidOperationException($"Encountered unexpected switch input type {type} while emitting."),
-            _ => throw new InvalidOperationException($"Failed to resolve case statement input type.")
-        };
-
-        private string EmitJumpTableSwitch(SwitchNode node)
-        {
-            throw new NotImplementedException();
-            //jump table rule seems to be any range that is less than half empties, minimum 3.
-        }
-
-        private string EmitLargeSwitch(SwitchNode node)
-        {
-            throw new NotImplementedException();
-            //comparison jumps execution halfway into the sorted cases based on a comparison with the median.
-            //This is actually what's using the string hashes
-            //The op_Equality is still required.
-        }
-
-        private string EmitCascadedIfSwitch(SwitchNode node)
-        {
-            var switchType = node.Input.GetExprType();
-            var hiddenSwitchLocal = MakeAndInjectLocalVar(switchType, node);
-            var endLabel = MakeLabel();
-            var equalityTest = switchType.BasicType switch //I merely observe Sharplabs ComputeStringHash method. 
-                                                           //You don't HAVE to try to use it future me.
-                                                           //I wonder how past me thought this warning had a chance of working.
-            {
-                STRING => @"
-    call bool [System.Private.CoreLib]System.String::op_Equality(string, string)
-    brtrue.s",
-                _ => @"
-    beq.s"
-            };
-            var branchHandling = String.Empty;
-            var cases = String.Empty;
-            var setup = @$"{EmitExpression(node.Input)}
-    stloc {hiddenSwitchLocal}";
-            foreach (var st in node.Cases)
-            {
-                var label = MakeLabel();
-                branchHandling += @$"
-    ldloc {hiddenSwitchLocal}
-    {EmitExpression(st.Case)}
-    {equalityTest} {label}";
-                cases += @$"
-    {label}: nop
-    {EmitStat(st.Stat)}
-    {EmitBranchToEndLabelUnlessStatReturns(endLabel, st.Stat)}";
-            }
-            if (node.Default.IsEmpty())
-            {
-                branchHandling += @$"
-    br.s {endLabel}";
-            }
-            else
-            {
-                var defaultLabel = MakeLabel();
-                branchHandling += @$"
-    br.s {defaultLabel}";
-                cases += @$"
-    {defaultLabel}: nop
-    {EmitStat(node.Default)}";
-            }
-            var ending = @$"
-    {endLabel}: nop";
-            return String.Join(String.Empty, setup, branchHandling, cases, ending);
-        }
 
         private string EmitCall(FunctionCallNode node)
         {
