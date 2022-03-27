@@ -2,15 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Blaise2.Ast;
+using Blaise2.Emitters.EmitterSubcomponents;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Emitters
 {
     public partial class CilEmitter
     {
-
         private const int LinearSearchThreshold = 3;
         private const int CaseCountSwitchabilityThreshold = 3;
+        private const int MinimumStringCasesToUseHashing = 7;
 
         private string EmitSwitch(SwitchNode node) => node.Input.GetExprType() switch
         {
@@ -40,13 +41,12 @@ namespace Blaise2.Emitters
     stloc {hiddenSwitchLocal}";
 
             //Branches and Cases
-            node.Cases.Sort(new SwitchCaseNodeComparer(switchType));
-            var buckets = BucketizeIntegralSwitchCases(node.Cases);
+            var buckets = new IntegralSwitchBucketer().BucketizeIntegralSwitch(node);
             foreach (var bucket in buckets)
             {
-                switchComponents = bucket.Count >= CaseCountSwitchabilityThreshold
-                    ? AddSwitchableBucketComponents(switchComponents, bucket, hiddenSwitchLocal, defaultLabel, endLabel)
-                    : AddUnswitchableBucketComponents(switchComponents, bucket, hiddenSwitchLocal, equalityTest, endLabel);
+                switchComponents = bucket.Cases.Count >= CaseCountSwitchabilityThreshold
+                    ? AddSwitchableBucketComponents(switchComponents, bucket.Cases, hiddenSwitchLocal, defaultLabel, endLabel)
+                    : AddUnswitchableBucketComponents(switchComponents, bucket.Cases, hiddenSwitchLocal, equalityTest, endLabel);
             }
             return string.Join(string.Empty,
                                setup,
@@ -125,7 +125,6 @@ namespace Blaise2.Emitters
         {
             var label = MakeLabel();
             switchComponents.Values.Add((swCase.Case as IConstantNode).GetConstant().GetValueAsInt());
-            switchComponents.Labels.Add(label);
             switchComponents.Branches.Add(@$"
     
     ldloc {hiddenSwitchLocal}{EmitExpression(swCase.Case)}
@@ -137,60 +136,10 @@ namespace Blaise2.Emitters
             return switchComponents;
         }
 
-        private List<List<SwitchCaseNode>> BucketizeIntegralSwitchCases(List<SwitchCaseNode> cases)
-        {
-            var count = cases.Count;
-            var stack = new Stack<List<SwitchCaseNode>>(count);
-            var listptr = 0;
-            while (listptr < count)
-            {
-                List<SwitchCaseNode> bucket;
-                if (IsRemainderDense(listptr, cases))
-                {
-                    bucket = cases.GetRange(listptr, count - listptr);
-                    listptr = count;
-                }
-                else
-                {
-                    bucket = new() { cases[listptr] };
-                }
-                while (stack.Count > 0 && IsCombinationDense(stack.Peek(), bucket))
-                {
-                    bucket = CombineBuckets(stack.Pop(), bucket);
-                }
-                stack.Push(bucket);
-                listptr++;
-            }
-            return stack.Reverse().ToList();
-        }
-
-        private bool IsRemainderDense(int listptr, List<SwitchCaseNode> cases)
-        {
-            var count = cases.Count - listptr;
-            var range = (cases[cases.Count - 1].Case as IConstantNode).GetConstant().GetValueAsInt()
-                      - (cases[listptr].Case as IConstantNode).GetConstant().GetValueAsInt();
-            return isDense(count, range);
-        }
-
-        private bool IsCombinationDense(List<SwitchCaseNode> stackTop, List<SwitchCaseNode> newBucket)
-        {
-            var newBucketCount = newBucket.Count;
-            var stackTopCount = stackTop.Count;
-            var count = stackTopCount + newBucketCount;
-            var range = (newBucket[newBucketCount - 1].Case as IConstantNode).GetConstant().GetValueAsInt()
-                      - (stackTop[0].Case as IConstantNode).GetConstant().GetValueAsInt()
-                      + 1;
-            return isDense(count, range);
-        }
-
-        private bool isDense(int count, int range) => count * 2 > range;
-
-        private List<SwitchCaseNode> CombineBuckets(List<SwitchCaseNode> stackTop, List<SwitchCaseNode> newBucket) =>
-            stackTop.Concat(newBucket).ToList();
-
         private string EqualityTestCil(BlaiseType caseType) => caseType switch
         {
-            { BasicType: STRING } => @"call bool [System.Private.CoreLib]System.String::op_Equality(string, string)
+            { BasicType: STRING }
+            or { IsExtended: true } and { ExtendedType: STRING } => @"call bool [System.Private.CoreLib]System.String::op_Equality(string, string)
     brtrue.s",
             _ => "beq.s"
         };
@@ -201,40 +150,36 @@ namespace Blaise2.Emitters
             var hiddenSwitchLocal = MakeAndInjectLocalVar(switchType, node);
             var endLabel = MakeLabel();
             var equalityTest = EqualityTestCil(switchType);
-            var branchHandling = string.Empty;
-            var cases = string.Empty;
+            var switchComponents = new SwitchEmissionComponents();
             var setup = @$"{EmitExpression(node.Input)}
     stloc {hiddenSwitchLocal}";
+            var defaultLabel = node.Default.IsEmpty() ? endLabel
+                                                      : MakeLabel();
+            var branchToDefault = @$"
+    br.s {defaultLabel}";
+            var defaultCase = MakeDefaultCase(node.Default, defaultLabel);
+            var ending = @$"
+    {endLabel}: nop";
             foreach (var st in node.Cases)
             {
                 var label = MakeLabel();
-                branchHandling += @$"
+                switchComponents.Branches.Add(@$"
     ldloc {hiddenSwitchLocal}
     {EmitExpression(st.Case)}
     {equalityTest} {label}
-    ";
-                cases += @$"
+    ");
+                switchComponents.Stats.Add(@$"
     {label}: nop
     {EmitStat(st.Stat)}
-    {EmitBranchToEndLabelUnlessStatReturns(endLabel, st.Stat)}";
+    {EmitBranchToEndLabelUnlessStatReturns(endLabel, st.Stat)}");
             }
-            if (node.Default.IsEmpty())
-            {
-                branchHandling += @$"
-    br.s {endLabel}";
-            }
-            else
-            {
-                var defaultLabel = MakeLabel();
-                branchHandling += @$"
-    br.s {defaultLabel}";
-                cases += @$"
-    {defaultLabel}: nop
-    {EmitStat(node.Default)}";
-            }
-            var ending = @$"
-    {endLabel}: nop";
-            return string.Join(string.Empty, setup, branchHandling, cases, ending);
+            return string.Join(string.Empty,
+                               setup,
+                               string.Join(string.Empty, switchComponents.Branches),
+                               branchToDefault,
+                               string.Join(string.Empty, switchComponents.Stats),
+                               defaultCase,
+                               ending);
         }
 
         private string MakeDefaultCase(AbstractAstNode defaultStat, string defaultLabel) => defaultStat switch
@@ -248,7 +193,6 @@ namespace Blaise2.Emitters
 
     internal class SwitchEmissionComponents
     {
-        public List<string> Labels { get; init; } = new();
         public List<string> Branches { get; init; } = new();
         public List<int> Values { get; init; } = new();
         public List<string> Stats { get; init; } = new();
