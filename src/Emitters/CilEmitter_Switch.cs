@@ -41,7 +41,7 @@ namespace Blaise2.Emitters
     stloc {hiddenSwitchLocal}";
 
             //Branches and Cases
-            var buckets = new IntegralSwitchBucketer().BucketizeIntegralSwitch(node);
+            var buckets = IntegralSwitchBucketer.BucketizeIntegralSwitch(node);
             foreach (var bucket in buckets)
             {
                 switchComponents = bucket.Cases.Count >= CaseCountSwitchabilityThreshold

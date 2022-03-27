@@ -7,13 +7,13 @@ namespace Blaise2.Emitters.EmitterSubcomponents
 {
     public class IntegralSwitchBucketer
     {
-        public List<Bucket> BucketizeIntegralSwitch(SwitchNode node)
+        public static List<Bucket> BucketizeIntegralSwitch(SwitchNode node)
         {
             node.Cases.Sort(new SwitchCaseNodeComparer(node.Input.GetExprType()));
             return BucketizeIntegralSwitchCases(node.Cases);
         }
 
-        private List<Bucket> BucketizeIntegralSwitchCases(List<SwitchCaseNode> cases)
+        private static List<Bucket> BucketizeIntegralSwitchCases(List<SwitchCaseNode> cases)
         {
             var count = cases.Count;
             var stack = new Stack<Bucket>(count);
@@ -34,7 +34,7 @@ namespace Blaise2.Emitters.EmitterSubcomponents
             return stack.Reverse().ToList();
         }
 
-        private Bucket CombineWithStackedBucketsIfDense(Stack<Bucket> stack, Bucket bucket) => stack.Count switch
+        private static Bucket CombineWithStackedBucketsIfDense(Stack<Bucket> stack, Bucket bucket) => stack.Count switch
         {
             > 0 when IsCombinationDense(stack.Peek(), bucket) =>
                 CombineWithStackedBucketsIfDense(stack, stack.Pop().Combine(bucket)),
@@ -42,7 +42,7 @@ namespace Blaise2.Emitters.EmitterSubcomponents
                 bucket
         };
 
-        private bool IsRemainderDense(int listptr, List<SwitchCaseNode> cases)
+        private static bool IsRemainderDense(int listptr, List<SwitchCaseNode> cases)
         {
             var count = cases.Count - listptr;
             var range = (cases[cases.Count - 1].Case as IConstantNode).GetConstant().GetValueAsInt()
@@ -50,7 +50,7 @@ namespace Blaise2.Emitters.EmitterSubcomponents
             return isDense(count, range);
         }
 
-        private bool IsCombinationDense(Bucket stackTop, Bucket newBucket)
+        private static bool IsCombinationDense(Bucket stackTop, Bucket newBucket)
         {
             var newBucketCount = newBucket.Cases.Count;
             var stackTopCount = stackTop.Cases.Count;
@@ -61,7 +61,7 @@ namespace Blaise2.Emitters.EmitterSubcomponents
             return isDense(count, range);
         }
 
-        private bool isDense(int count, int range) => count * 2 > range;
+        private static bool isDense(int count, int range) => count * 2 > range;
     }
 
     public class Bucket
