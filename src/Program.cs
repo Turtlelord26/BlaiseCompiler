@@ -7,17 +7,20 @@ namespace Blaise2
         static void Main(string[] args)
         {
             Try(@"
-                program CharSwitch;
+                program StringSwitch;
                 
-                var x : char;
+                var x : string;
 
                 begin
-                    x := 'a';
+                    x := 'four';
                     case (x) of
-                        'a': write('a');
-                        'c': write('c');
-                        'D': write('D');
-                        'Y': write('Y');
+                        'one': write('aa');
+                        'two': write('bb');
+                        'three': write('cc');
+                        'four': write('dd');
+                        'five': write('ee');
+                        'six': write('ff');
+                        'seven': write('gg');
                     end;
                 end.");
         }

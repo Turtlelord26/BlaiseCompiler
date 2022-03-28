@@ -187,5 +187,83 @@ namespace Blaise2.Tests
             // Assert
             Assert.AreEqual("a", result);
         }
+
+        [TestMethod]
+        public void CanSwitchOnStrings()
+        {
+            // Arrange
+            const string src = @"
+                program StringSwitch;
+                
+                var x : string;
+
+                begin
+                    x := 'four';
+                    case (x) of
+                        'one': write('aa');
+                        'two': write('bb');
+                        'three': write('cc');
+                        'four': write('dd');
+                        'five': write('ee');
+                        'six': write('ff');
+                        'seven': write('gg');
+                    end;
+                end.";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.IsTrue(compiler.Cil.Contains("string ___AnonVar_"));
+            Assert.IsTrue(compiler.Cil.Contains("int32 ___AnonVar_"));
+            Assert.IsTrue(compiler.Cil.Contains("stloc ___AnonVar_0"));
+            Assert.IsTrue(compiler.Cil.Contains("stloc ___AnonVar_1"));
+            Assert.IsTrue(compiler.Cil.Contains("ldloc ___AnonVar_0"));
+            Assert.IsTrue(compiler.Cil.Contains("ldloc ___AnonVar_1"));
+            Assert.IsTrue(compiler.Cil.Contains("ldc.i4"));
+            Assert.IsTrue(compiler.Cil.Contains("bgt"));
+            Assert.AreEqual("dd", result);
+        }
+
+        [TestMethod]
+        public void StringSwitchDoesNotUseHashingOnSmallList()
+        {
+            // Arrange
+            const string src = @"
+                program StringSwitch;
+                
+                var x : string;
+
+                begin
+                    x := 'four';
+                    case (x) of
+                        'one': write('aa');
+                        'two': write('bb');
+                        'three': write('cc');
+                        'four': write('dd');
+                        'five': write('ee');
+                    end;
+                end.";
+            var compiler = new Compiler();
+
+            // Act
+            Assert.IsTrue(compiler.Compile(src));
+            compiler.AssembleToObjectCode();
+            var result = compiler.ExecuteObjectCode();
+
+            // Assert
+            Assert.IsTrue(compiler.Cil.Contains("string ___AnonVar_"));
+            Assert.IsFalse(compiler.Cil.Contains("int32 ___AnonVar_"));
+            Assert.IsTrue(compiler.Cil.Contains("stloc ___AnonVar_0"));
+            Assert.IsFalse(compiler.Cil.Contains("stloc ___AnonVar_1"));
+            Assert.IsTrue(compiler.Cil.Contains("ldloc ___AnonVar_0"));
+            Assert.IsFalse(compiler.Cil.Contains("ldloc ___AnonVar_1"));
+            Assert.IsFalse(compiler.Cil.Contains("ldc.i4"));
+            Assert.IsFalse(compiler.Cil.Contains("bgt"));
+            Assert.AreEqual("dd", result);
+        }
     }
 }

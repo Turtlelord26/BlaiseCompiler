@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Blaise2.Ast;
 using Blaise2.Emitters.EmitterSubcomponents;
+using static Blaise2.Ast.BlaiseTypeEnum;
 using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.VarType;
 
@@ -14,8 +15,6 @@ namespace Blaise2.Emitters
     nop";
         private string ProgramName;
         public List<VarDeclNode> MainLocals { get; init; } = new();
-        private LabelFactory LabelFactory { get; init; } = new();
-        private VarFactory VarFactory { get; init; } = new();
 
         public string EmitCil(ProgramNode program) => EmitProgram(program);
 
@@ -185,6 +184,13 @@ namespace Blaise2.Emitters
         }
 
         private string EmitForLoop(ForLoopNode node) => EmitAssignment(node.Assignment) + EmitLoop(node);
+
+        private string EmitSwitch(SwitchNode node) => node.Input.GetExprType() switch
+        {
+            { BasicType: CHAR or INTEGER or REAL } => EmitNumericSwitch(node),
+            { BasicType: STRING } => EmitStringSwitch(node),
+            BlaiseType bt => throw new InvalidOperationException($"Encountered invalid switch input type {bt} while emitting.")
+        };
 
         private string EmitCall(FunctionCallNode node)
         {
