@@ -41,11 +41,22 @@ namespace Blaise2.Emitters
         private string MakeStringSwitchSetup(AbstractTypedAstNode input, string switchLocal, string stringHashLocal, bool useHashing)
         {
             var emitInput = EmitExpression(input);
-            var dup = useHashing ? "\n\tdup" : string.Empty;
-            var storeLocal = $"\n\tstloc {switchLocal}";
-            var calcHash = useHashing ? "\n\tcallvirt instance int32 [System.Private.CoreLib]System.Object::GetHashCode()" : string.Empty;
-            var storeHashLocal = useHashing ? $"\n\tstloc {stringHashLocal}" : string.Empty;
-            return string.Join(string.Empty, emitInput, dup, storeLocal, calcHash, storeHashLocal);
+            var storeLocal = @$"
+    stloc {switchLocal}";
+            if (useHashing)
+            {
+                var dup = @"
+    dup";
+                var calcHash = @"
+    callvirt instance int32 [System.Private.CoreLib]System.Object::GetHashCode()";
+                var storeHashLocal = @$"
+    stloc {stringHashLocal}";
+                return string.Join(string.Empty, emitInput, dup, storeLocal, calcHash, storeHashLocal);
+            }
+            else
+            {
+                return string.Join(string.Empty, emitInput, storeLocal);
+            }
         }
 
         private SwitchBranchData StringSwitchData(List<SwitchCaseNode> cases) =>
@@ -57,7 +68,7 @@ namespace Blaise2.Emitters
             var branchesCil = string.Empty;
             if (useBinarySearchOnHashes)
             {
-                branchesCil += EmitBinarySearchOnHashedBranches(branches, stringHashLocal, switchLocal, 0, branches.Count - 1);
+                branchesCil += EmitBinarySearchOnHashedBranches(branches, stringHashLocal, 0, branches.Count - 1);
             }
             branchesCil += branches.Aggregate(string.Empty, (cil, branch) => cil += GetStringBranchCil(branch, switchLocal, useBinarySearchOnHashes));
             return branchesCil;
@@ -65,13 +76,12 @@ namespace Blaise2.Emitters
 
         private string EmitBinarySearchOnHashedBranches(List<ILabeledBranch> branches,
                                                         string stringHashLocal,
-                                                        string switchLocal,
                                                         int startIndex,
                                                         int endIndex)
         {
             if (endIndex - startIndex < LinearSearchThreshold)
             {
-                return EmitHashedBranches(branches, switchLocal, startIndex, endIndex);
+                return EmitHashedBranches(branches, stringHashLocal, startIndex, endIndex);
             }
             var midpoint = (startIndex + endIndex + 1) / 2;
             var pivotValue = GetStringBranchHash(branches[midpoint - 1]);
@@ -81,20 +91,20 @@ namespace Blaise2.Emitters
     {pivotLabel}: nop";
             return string.Join(string.Empty,
                                EmitHashedConditionalBranchToSecondHalf(stringHashLocal, pivotValue, pivotLabel),
-                               EmitBinarySearchOnHashedBranches(branches, stringHashLocal, switchLocal, startIndex, midpoint - 1),
+                               EmitBinarySearchOnHashedBranches(branches, stringHashLocal, startIndex, midpoint - 1),
                                pivotLabelLine,
-                               EmitBinarySearchOnHashedBranches(branches, stringHashLocal, switchLocal, midpoint, endIndex));
+                               EmitBinarySearchOnHashedBranches(branches, stringHashLocal, midpoint, endIndex));
         }
 
-        private string EmitHashedConditionalBranchToSecondHalf(string switchHashLocalVar, int pivotValue, string pivotLabel) => @$"
+        private string EmitHashedConditionalBranchToSecondHalf(string switchHashLocal, int pivotValue, string pivotLabel) => @$"
     
-    ldloc {switchHashLocalVar}
+    ldloc {switchHashLocal}
     ldc.i4 {pivotValue}
     bgt {pivotLabel}";
 
-        private string EmitHashedBranches(List<ILabeledBranch> branches, string switchLocalVar, int startIndex, int endIndex) =>
+        private string EmitHashedBranches(List<ILabeledBranch> branches, string stringHashLocal, int startIndex, int endIndex) =>
             branches.GetRange(startIndex, endIndex - startIndex + 1)
-                    .Aggregate(string.Empty, (emit, branch) => emit += GetHashBranchCil(branch, switchLocalVar));
+                    .Aggregate(string.Empty, (emit, branch) => emit += GetHashBranchCil(branch, stringHashLocal));
 
         private string GetHashBranchCil(ILabeledBranch labeledBranch, string stringHashLocalVar) => labeledBranch switch
         {

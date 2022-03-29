@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Blaise2.Tests
 {
     [TestClass]
-    public class CompilerSWitchTests
+    public class CompilerSwitchTests
     {
         [TestMethod]
         public void CanUseCilSwitch()
@@ -31,7 +31,7 @@ namespace Blaise2.Tests
             var result = compiler.ExecuteObjectCode();
 
             // Assert
-            Assert.IsTrue(compiler.Cil.Contains("switch"));
+            StringAssert.Contains(compiler.Cil, "switch");
             Assert.AreEqual("4", result);
         }
 
@@ -96,7 +96,7 @@ namespace Blaise2.Tests
             var result = compiler.ExecuteObjectCode();
 
             // Assert
-            Assert.IsTrue(compiler.Cil.Contains("bgt"));
+            StringAssert.Contains(compiler.Cil, "bgt");
             Assert.AreEqual("25", result);
         }
 
@@ -211,20 +211,23 @@ namespace Blaise2.Tests
                 end.";
             var compiler = new Compiler();
 
+            //Reset VarFactory for easier testing of use of multiple hidden local variables
+            Blaise2.Emitters.EmitterSubcomponents.VarFactory.Singleton = new();
+
             // Act
             Assert.IsTrue(compiler.Compile(src));
             compiler.AssembleToObjectCode();
             var result = compiler.ExecuteObjectCode();
 
             // Assert
-            Assert.IsTrue(compiler.Cil.Contains("string ___AnonVar_"));
-            Assert.IsTrue(compiler.Cil.Contains("int32 ___AnonVar_"));
-            Assert.IsTrue(compiler.Cil.Contains("stloc ___AnonVar_0"));
-            Assert.IsTrue(compiler.Cil.Contains("stloc ___AnonVar_1"));
-            Assert.IsTrue(compiler.Cil.Contains("ldloc ___AnonVar_0"));
-            Assert.IsTrue(compiler.Cil.Contains("ldloc ___AnonVar_1"));
-            Assert.IsTrue(compiler.Cil.Contains("ldc.i4"));
-            Assert.IsTrue(compiler.Cil.Contains("bgt"));
+            StringAssert.Contains(compiler.Cil, "string ___AnonVar_");
+            StringAssert.Contains(compiler.Cil, "int32 ___AnonVar_");
+            StringAssert.Contains(compiler.Cil, "stloc ___AnonVar_0");
+            StringAssert.Contains(compiler.Cil, "stloc ___AnonVar_1");
+            StringAssert.Contains(compiler.Cil, "ldloc ___AnonVar_0");
+            StringAssert.Contains(compiler.Cil, "ldloc ___AnonVar_1");
+            StringAssert.Contains(compiler.Cil, "ldc.i4");
+            StringAssert.Contains(compiler.Cil, "bgt");
             Assert.AreEqual("dd", result);
         }
 
@@ -249,17 +252,20 @@ namespace Blaise2.Tests
                 end.";
             var compiler = new Compiler();
 
+            //Reset VarFactory for easier testing of non-use of multiple hidden local variables
+            Blaise2.Emitters.EmitterSubcomponents.VarFactory.Singleton = new();
+
             // Act
             Assert.IsTrue(compiler.Compile(src));
             compiler.AssembleToObjectCode();
             var result = compiler.ExecuteObjectCode();
 
             // Assert
-            Assert.IsTrue(compiler.Cil.Contains("string ___AnonVar_"));
+            StringAssert.Contains(compiler.Cil, "string ___AnonVar_");
             Assert.IsFalse(compiler.Cil.Contains("int32 ___AnonVar_"));
-            Assert.IsTrue(compiler.Cil.Contains("stloc ___AnonVar_0"));
+            StringAssert.Contains(compiler.Cil, "stloc ___AnonVar_0");
             Assert.IsFalse(compiler.Cil.Contains("stloc ___AnonVar_1"));
-            Assert.IsTrue(compiler.Cil.Contains("ldloc ___AnonVar_0"));
+            StringAssert.Contains(compiler.Cil, "ldloc ___AnonVar_0");
             Assert.IsFalse(compiler.Cil.Contains("ldloc ___AnonVar_1"));
             Assert.IsFalse(compiler.Cil.Contains("ldc.i4"));
             Assert.IsFalse(compiler.Cil.Contains("bgt"));

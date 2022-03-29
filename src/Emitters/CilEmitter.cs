@@ -58,7 +58,7 @@ namespace Blaise2.Emitters
     .field public {v.BlaiseType.ToCilType()} {v.Identifier}");
             var methods = node.Procedures.Concat(node.Functions).Aggregate("\n", (cil, func) => cil += EmitFunction(func));
             var localIndex = 1;
-            var mainLocals = MainLocals.Aggregate("", (cil, local) => cil += $",\n\t\t[{localIndex++}] {local.BlaiseType.ToCilType()} {local.Identifier}");
+            var mainLocals = MainLocals.Aggregate("", (cil, local) => cil += $",\n        [{localIndex++}] {local.BlaiseType.ToCilType()} {local.Identifier}");
             return @$"{Preamble()}
 .class public auto ansi beforefieldinit {node.Identifier}
     extends [System.Private.CoreLib]System.Object

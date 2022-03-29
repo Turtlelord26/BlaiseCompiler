@@ -10,10 +10,8 @@ namespace Blaise2.Emitters.EmitterSubcomponents
 
         public VarDeclNode MakeLocalVar(BlaiseType varType) => new VarDeclNode()
         {
-            Identifier = NewAnonymousVar(),
+            Identifier = $"___AnonVar_{anonymousVarNum++}",
             BlaiseType = varType.DeepCopy()
         };
-
-        private string NewAnonymousVar() => $"___AnonVar_{anonymousVarNum++}";
     }
 }
