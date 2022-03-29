@@ -21,7 +21,6 @@ namespace Blaise2.Emitters
                                                       : MakeLabel();
             var branchToDefault = @$"
     br.s {defaultLabel}";
-            var defaultCase = MakeDefaultCase(node.Default, defaultLabel);
             var ending = @$"
     {endLabel}: nop";
             var switchLocal = MakeAndInjectLocalVar(switchType, node);
@@ -34,30 +33,19 @@ namespace Blaise2.Emitters
                                EmitStringBranchesWithBinarySearch(branchData.Branches, stringHashLocal, switchLocal),
                                branchToDefault,
                                EmitLabeledStats(branchData.Stats, endLabel),
-                               defaultCase,
+                               MakeDefaultCase(node.Default, defaultLabel),
                                ending);
         }
 
-        private string MakeStringSwitchSetup(AbstractTypedAstNode input, string switchLocal, string stringHashLocal, bool useHashing)
-        {
-            var emitInput = EmitExpression(input);
-            var storeLocal = @$"
+        private string MakeStringSwitchSetup(AbstractTypedAstNode input, string switchLocal, string stringHashLocal, bool useHashing) =>
+            useHashing
+            ? @$"{EmitExpression(input)}
+    dup
+    stloc {switchLocal}
+    callvirt instance int32 [System.Private.CoreLib]System.Object::GetHashCode()
+    stloc {stringHashLocal}"
+            : @$"{EmitExpression(input)}
     stloc {switchLocal}";
-            if (useHashing)
-            {
-                var dup = @"
-    dup";
-                var calcHash = @"
-    callvirt instance int32 [System.Private.CoreLib]System.Object::GetHashCode()";
-                var storeHashLocal = @$"
-    stloc {stringHashLocal}";
-                return string.Join(string.Empty, emitInput, dup, storeLocal, calcHash, storeHashLocal);
-            }
-            else
-            {
-                return string.Join(string.Empty, emitInput, storeLocal);
-            }
-        }
 
         private SwitchBranchData StringSwitchData(List<SwitchCaseNode> cases) =>
             StringSwitchBranchAssembler.AssembleStringSwitchBranches(cases);

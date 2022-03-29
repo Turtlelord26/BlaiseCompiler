@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Blaise2.Ast;
-using Blaise2.Emitters.EmitterSubcomponents;
 using static Blaise2.Ast.BlaiseTypeEnum;
 using static Blaise2.Ast.LoopType;
 using static Blaise2.Ast.VarType;
@@ -54,11 +53,11 @@ namespace Blaise2.Emitters
         {
             ProgramName = node.Identifier;
             var body = EmitStat(node.Stat);
-            var fields = node.VarDecls.Aggregate("", (cil, v) => cil += $@"
+            var fields = node.VarDecls.Aggregate(string.Empty, (cil, v) => cil += $@"
     .field public {v.BlaiseType.ToCilType()} {v.Identifier}");
             var methods = node.Procedures.Concat(node.Functions).Aggregate("\n", (cil, func) => cil += EmitFunction(func));
             var localIndex = 1;
-            var mainLocals = MainLocals.Aggregate("", (cil, local) => cil += $",\n        [{localIndex++}] {local.BlaiseType.ToCilType()} {local.Identifier}");
+            var mainLocals = MainLocals.Aggregate(string.Empty, (cil, local) => cil += $",\n        [{localIndex++}] {local.BlaiseType.ToCilType()} {local.Identifier}");
             return @$"{Preamble()}
 .class public auto ansi beforefieldinit {node.Identifier}
     extends [System.Private.CoreLib]System.Object
@@ -131,21 +130,18 @@ namespace Blaise2.Emitters
             var info = node.VarInfo ?? throw new InvalidOperationException($"Couldn't resolve variable {node.Identifier}.");
             var varType = info.VarDecl.BlaiseType;
             var exprType = node.Expression.GetExprType();
-            var typeConversion = varType.Equals(exprType) ? ""
+            var typeConversion = varType.Equals(exprType) ? string.Empty
                                                           : TypeConvert(exprType, varType, node);
             return info.VarType switch
             {
                 Global => @$"
-    ldloc.0{EmitExpression(node.Expression)}
-    {typeConversion}
+    ldloc.0{EmitExpression(node.Expression)}{typeConversion}
     stfld {varType.ToCilType()} {ProgramName}::{info.VarDecl.Identifier}",
                 Local => @$"
-    {EmitExpression(node.Expression)}
-    {typeConversion}
+    {EmitExpression(node.Expression)}{typeConversion}
     stloc {info.VarDecl.Identifier}",
                 Argument => @$"
-    {EmitExpression(node.Expression)}
-    {typeConversion}
+    {EmitExpression(node.Expression)}{typeConversion}
     starg.s {info.VarDecl.Identifier}",
                 _ => throw new InvalidOperationException($"Invalid VarType {info.VarType}")
             };
