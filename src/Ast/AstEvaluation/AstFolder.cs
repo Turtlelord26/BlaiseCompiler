@@ -5,141 +5,130 @@ using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
 {
-    public class AstFolder
+    public class AstFolder : AbstractAstVisitor<AbstractAstNode>
     {
-        public static void FoldAst(ProgramNode Ast) => FoldProgram(Ast);
-
-        private static ProgramNode FoldProgram(ProgramNode node)
+        public override AbstractAstNode VisitProgram(ProgramNode node)
         {
             var procedures = node.Procedures;
             var functions = node.Functions;
-            node.Procedures = node.Procedures.Select(proc => (FunctionNode)FoldProgram(proc)).ToList();
-            node.Functions = node.Functions.Select(func => (FunctionNode)FoldProgram(func)).ToList();
-            node.Stat = FoldStat(node.Stat);
+            node.Procedures = node.Procedures.Select(proc => (FunctionNode)VisitProgram(proc)).ToList();
+            node.Functions = node.Functions.Select(func => (FunctionNode)VisitProgram(func)).ToList();
+            node.Stat = VisitStatement(node.Stat);
             return node;
         }
 
-        private static BlockNode FoldBlock(BlockNode node)
+        public override AbstractAstNode VisitVarDecl(VarDeclNode node) => node;
+
+        public override AbstractAstNode VisitFunction(FunctionNode node) => VisitProgram(node);
+
+        public override AbstractAstNode VisitBlock(BlockNode node)
         {
-            node.Stats = node.Stats.Select(stat => FoldStat(stat)).ToList();
+            node.Stats = node.Stats.Select(stat => VisitStatement(stat)).ToList();
             return node;
         }
 
-        private static WriteNode FoldWrite(WriteNode node)
+        public override AbstractAstNode VisitWrite(WriteNode node)
         {
-            node.Expression = FoldExpression(node.Expression);
+            node.Expression = VisitExpression(node.Expression);
             return node;
         }
 
-        private static AssignmentNode FoldAssignment(AssignmentNode node)
+        public override AbstractAstNode VisitAssignment(AssignmentNode node)
         {
-            node.Expression = FoldExpression(node.Expression);
+            node.Expression = VisitExpression(node.Expression);
             return node;
         }
 
-        private static AbstractAstNode FoldIf(IfNode node)
+        public override AbstractAstNode VisitIf(IfNode node)
         {
-            node.Condition = FoldExpression(node.Condition);
-            node.ThenStat = FoldStat(node.ThenStat);
-            node.ElseStat = FoldStat(node.ElseStat);
+            node.Condition = VisitExpression(node.Condition);
+            node.ThenStat = VisitStatement(node.ThenStat);
+            node.ElseStat = VisitStatement(node.ElseStat);
             return node.Condition switch
             {
-                BooleanNode constant => constant.BoolValue ? node.ThenStat
-                                                           : node.ElseStat,
+                BooleanNode condition when condition.BoolValue => node.ThenStat,
+                BooleanNode => node.ElseStat,
                 _ => node
             };
         }
 
-        private static AbstractAstNode FoldLoop(LoopNode node)
+        public override AbstractAstNode VisitLoop(LoopNode node)
         {
-            node.Condition = FoldExpression(node.Condition);
-            node.Body = FoldStat(node.Body);
+            node.Condition = VisitExpression(node.Condition);
+            node.Body = VisitStatement(node.Body);
             return node.Condition switch
             {
-                BooleanNode constant => constant.BoolValue ? node.Body
-                                                           : AbstractAstNode.Empty,
+                BooleanNode condition when condition.BoolValue => node.Body,
+                BooleanNode => AbstractAstNode.Empty,
                 _ => node
             };
         }
 
-        private static AbstractAstNode FoldForLoop(ForLoopNode node)
+        public override AbstractAstNode VisitForLoop(ForLoopNode node)
         {
-            node.Assignment = FoldAssignment(node.Assignment);
-            node = (ForLoopNode)FoldLoop(node as LoopNode);
-            var initExpr = node.Assignment.Expression;
-            var condition = node.Condition as BooleanOpNode;
-            switch (initExpr)
+            node.Assignment = (AssignmentNode)VisitAssignment(node.Assignment);
+            node = (ForLoopNode)VisitLoop(node);
+            var initial = node.Assignment.Expression;
+            var condition = (BooleanOpNode)node.Condition;
+            var limit = condition.Right;
+            if (initial is IConstantNode & limit is IConstantNode)
             {
-                case IConstantNode icn:
-                    var astConstant = icn.GetConstant();
-                    var initValue = icn.GetConstant();
-                    var op = condition.Operator;
-                    var limit = condition.Right;
-                    if (limit is not IConstantNode)
-                    {
-                        goto default;
-                    }
-                    var constLimit = (limit as IConstantNode).GetConstant();
-                    var comparer = new AstConstantComparer();
-                    if (op is Gt & comparer.Compare(initValue, constLimit) <= 0)
-                    {
-                        return node.Assignment;
-                    }
-                    else if (op is Lt & comparer.Compare(initValue, constLimit) >= 0)
-                    {
-                        return node.Assignment;
-                    }
-                    goto default;
-                default:
-                    return node;
+                var initialValue = ((IConstantNode)initial).GetConstant();
+                var limitValue = ((IConstantNode)limit).GetConstant();
+                var comparer = new AstConstantComparer();
+                return condition.Operator switch
+                {
+                    Gt when comparer.Compare(initialValue, limitValue) <= 0 => node.Assignment,
+                    Lt when comparer.Compare(initialValue, limitValue) >= 0 => node.Assignment,
+                    _ => node
+                };
             }
-        }
-
-        private static AbstractAstNode FoldSwitch(SwitchNode node)
-        {
-            node.Input = FoldExpression(node.Input);
-            foreach (var swCase in node.Cases)
-            {
-                swCase.Stat = FoldStat(swCase.Stat);
-            }
-            switch (node.Input)
-            {
-                case IConstantNode icn:
-                    var comparer = new AstConstantComparer();
-                    var value = icn.GetConstant();
-                    var matchingCase = node.Cases.Where(c => comparer.Compare((c.Case as IConstantNode).GetConstant(), value) == 0).FirstOrDefault();
-                    if (matchingCase is not null)
-                    {
-                        return matchingCase.Stat;
-                    }
-                    goto default;
-                default:
-                    return node;
-            }
-        }
-
-        private static ReturnNode FoldReturn(ReturnNode node)
-        {
-            node.Expression = FoldExpression(node.Expression);
             return node;
         }
 
-        private static FunctionCallNode FoldCall(FunctionCallNode node)
+        public override AbstractAstNode VisitSwitch(SwitchNode node)
         {
-            node.Arguments = node.Arguments.Select(arg => FoldExpression(arg)).ToList();
+            node.Input = VisitExpression(node.Input);
+            node.Cases.ForEach(swCase => VisitStatement(swCase.Stat));
+            if (node.Input is IConstantNode)
+            {
+                var comparer = new AstConstantComparer();
+                var value = ((IConstantNode)node.Input).GetConstant();
+                var matchingCase = node.Cases.Where(c => comparer.Compare((c.Case as IConstantNode).GetConstant(), value) == 0).FirstOrDefault();
+                if (matchingCase is not null)
+                {
+                    return matchingCase.Stat;
+                }
+            }
             return node;
         }
 
-        private static AbstractTypedAstNode FoldBinaryOp(BinaryOpNode node)
+        public override AbstractAstNode VisitReturn(ReturnNode node)
         {
-            node.Left = FoldExpression(node.Left);
-            node.Right = FoldExpression(node.Right);
+            node.Expression = VisitExpression(node.Expression);
+            return node;
+        }
+
+        public override AbstractAstNode VisitCall(FunctionCallNode node)
+        {
+            node.Arguments = node.Arguments.Select(arg => VisitExpression(arg)).ToList();
+            return node;
+        }
+
+        public override AbstractAstNode VisitBinaryOperator(BinaryOpNode node)
+        {
+            node.Left = VisitExpression(node.Left);
+            node.Right = VisitExpression(node.Right);
             return FoldBinaryValues(node);
         }
 
-        private static AbstractTypedAstNode FoldNotOp(NotOpNode node)
+        public override AbstractAstNode VisitBooleanOperator(BooleanOpNode node) => VisitBinaryOperator(node);
+
+        public override AbstractAstNode VisitLogicalOperator(LogicalOpNode node) => VisitBinaryOperator(node);
+
+        public override AbstractAstNode VisitNotOperator(NotOpNode node)
         {
-            node.Expression = FoldExpression(node.Expression);
+            node.Expression = VisitExpression(node.Expression);
             if (node.Expression is BooleanNode)
             {
                 var boolnode = (BooleanNode)node.Expression;
@@ -149,7 +138,23 @@ namespace Blaise2.Ast
             return node;
         }
 
-        private static AbstractTypedAstNode FoldBinaryValues(BinaryOpNode node)
+        public new AbstractTypedAstNode VisitExpression(AbstractTypedAstNode node) => (AbstractTypedAstNode)base.VisitExpression(node);
+
+        public override AbstractAstNode VisitVarRef(VarRefNode node) => node;
+
+        public override AbstractAstNode VisitBoolean(BooleanNode node) => node;
+
+        public override AbstractAstNode VisitChar(CharNode node) => node;
+
+        public override AbstractAstNode VisitInteger(IntegerNode node) => node;
+
+        public override AbstractAstNode VisitReal(RealNode node) => node;
+
+        public override AbstractAstNode VisitString(StringNode node) => node;
+
+        public override AbstractAstNode VisitEmpty(AbstractAstNode node) => node;
+
+        public AbstractAstNode FoldBinaryValues(BinaryOpNode node)
         {
             if (node.Left is not IConstantNode | node.Right is not IConstantNode)
             {
@@ -186,36 +191,5 @@ namespace Blaise2.Ast
                 _ => throw new InvalidOperationException($"Detected invalid operator {node.Operator} in Binary node.")
             };
         }
-
-        private static AbstractAstNode FoldStat(AbstractAstNode node) => node switch
-        {
-            ProgramNode prog => FoldProgram(prog),
-            BlockNode block => FoldBlock(block),
-            WriteNode write => FoldWrite(write),
-            AssignmentNode assign => FoldAssignment(assign),
-            IfNode ifn => FoldIf(ifn),
-            ForLoopNode forl => FoldForLoop(forl),
-            LoopNode loop => FoldLoop(loop),
-            SwitchNode switcher => FoldSwitch(switcher),
-            ReturnNode ret => FoldReturn(ret),
-            FunctionCallNode call => FoldCall(call),
-            AbstractAstNode aan when aan.IsEmpty() => aan,
-            _ => throw new InvalidOperationException($"Unexpected node type {node.GetType()} encountered during statement folding.")
-        };
-
-        private static AbstractTypedAstNode FoldExpression(AbstractTypedAstNode node) => node switch
-        {
-            BinaryOpNode bin => FoldBinaryOp(bin),
-            NotOpNode not => FoldNotOp(not),
-            FunctionCallNode
-            or IntegerNode
-            or RealNode
-            or VarRefNode
-            or BooleanNode
-            or CharNode
-            or StringNode => node,
-            AbstractTypedAstNode atan when atan.IsEmpty() => (AbstractTypedAstNode)AbstractAstNode.Empty,
-            _ => throw new InvalidOperationException($"Invalid node type {node.GetType()} detected during expression folding")
-        };
     }
 }
