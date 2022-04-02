@@ -3,11 +3,14 @@ using Antlr4.Runtime;
 using Blaise2.Ast;
 using Blaise2.Emitters;
 using Blaise2.Errors;
+using Blaise2.Visualizations;
 
 namespace Blaise2
 {
     public partial class Compiler
     {
+        private const string DotOutputPath = "./expr.dot";
+
         private readonly ScanErrorListener scanErrorListener = new ScanErrorListener();
         private readonly ParseErrorListener parseErrorListener = new ParseErrorListener();
 
@@ -37,34 +40,32 @@ namespace Blaise2
             return parseSuccess;
         }
 
-        public bool Compile(string input, bool trace = false)
+        public bool Compile(string input, bool trace = false, bool dot = false)
         {
             var parseSuccess = Parse(input, trace);
 
             if (parseSuccess)
             {
                 Ast = new AstGenerator().Visit(ParseTree) as ProgramNode;
-                if (Ast == null) { return false; }
+                if (Ast is null) { return false; }
 
-                var valid = AstEvaluator.EvaluateAst(Ast);
-
-                var renderer = new DotRenderer("./expr.dot");
-                renderer.Visualize(Ast);
-                renderer.Close();
-
+                var evaluator = new AstEvaluator();
+                var valid = evaluator.VisitProgram(Ast);
+                if (dot)
+                {
+                    OutputDot();
+                }
                 if (!valid)
                 {
-                    Console.WriteLine(string.Join("\n", AstEvaluator.Errors));
-                    throw new InvalidOperationException(string.Join("\n", AstEvaluator.Errors));
+                    Console.Error.WriteLine(string.Join("\n", evaluator.Errors));
+                    throw new InvalidOperationException(string.Join("\n", evaluator.Errors));
                 }
-
-                AstFolder.FoldAst(Ast);
-                var foldedRenderer = new DotRenderer("./expr.dot");
-                foldedRenderer.Visualize(Ast);
-                foldedRenderer.Close();
-
+                new AstFolder().VisitProgram(Ast);
+                if (dot)
+                {
+                    OutputDot();
+                }
                 Cil = new CilEmitter().EmitCil(Ast);
-
                 return true;
             }
             else
@@ -97,6 +98,12 @@ namespace Blaise2
                     Console.Error.WriteLine($"* {err}");
                 }
             }
+        }
+
+        private void OutputDot()
+        {
+            using var renderer = new DotRenderer(DotOutputPath);
+            renderer.Visualize(Ast);
         }
     }
 }

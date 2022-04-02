@@ -32,7 +32,8 @@ namespace Blaise2
             var compiler = new Compiler();
 
             // set trace: true to turn on parse tracing
-            var success = compiler.Compile(input, trace: false);
+            // set dot: true to turn on dot output for graphviz
+            var success = compiler.Compile(input, trace: false, dot: true);
 
             if (!success)
             {

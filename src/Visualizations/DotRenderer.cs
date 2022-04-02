@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using Blaise2.Ast;
 
-namespace Blaise2
+namespace Blaise2.Visualizations
 {
-    public class DotRenderer
+    public class DotRenderer : IDisposable
     {
         private int ctr = 0;
 
@@ -15,7 +15,7 @@ namespace Blaise2
             outStream = new StreamWriter(filename);
         }
 
-        public void Close() => outStream.Close();
+        public void Dispose() => outStream.Close();
 
         public void Visualize(AbstractAstNode root)
         {
@@ -107,7 +107,7 @@ namespace Blaise2
         private void Treewalk(FunctionCallNode node, string parent)
         {
             var label = node.IsFunction ? $"Function Call\n{node.Identifier}"
-                                       : $"Procedure Call\n{node.Identifier}";
+                                        : $"Procedure Call\n{node.Identifier}";
             var dot = WriteNewNodeAndParentEdge(parent, label);
             node.Arguments.ForEach(arg => Treewalk((dynamic)arg, dot));
         }
@@ -200,17 +200,16 @@ namespace Blaise2
 
         private void Treewalk(AbstractAstNode node, string parent)
         {
-            if (node.IsEmpty())
+            if (!node.IsEmpty())
             {
-                return;
+                throw new InvalidOperationException($"Unrecognized tree node of type {node.GetType()}");
             }
-            throw new InvalidOperationException($"Unrecognized tree node of type {node.GetType()}");
         }
 
-        private string WriteNewNodeAndParentEdge(string parent, string label, bool terminal = false)
+        private string WriteNewNodeAndParentEdge(string parent, string label, bool isTerminalNode = false)
         {
             var dot = MakeDotNode();
-            var shape = DetermineShape(terminal);
+            var shape = DetermineShape(isTerminalNode);
             PrintNode(dot, shape, label);
             PrintEdge(parent, dot);
             return dot;
@@ -218,7 +217,7 @@ namespace Blaise2
 
         private string MakeDotNode() => $"node{ctr++}";
 
-        private string DetermineShape(bool terminal) => terminal ? "" : "shape=\"rect\" ";
+        private string DetermineShape(bool isTerminalNode) => isTerminalNode ? "" : "shape=\"rect\" ";
 
         private void PrintNode(string dot, string shape, string label) => outStream.WriteLine($"  {dot} [{shape}label=\"{label}\"]");
 
