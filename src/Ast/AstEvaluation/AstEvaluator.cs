@@ -6,20 +6,18 @@ using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Ast
 {
-    public partial class AstEvaluator
+    public partial class AstEvaluator : AbstractAstVisitor<bool>
     {
-        public static List<string> Errors { get; private set; } = new();
+        public List<string> Errors { get; init; } = new();
 
-        public static bool EvaluateAst(ProgramNode node) => Evaluate(node);
-
-        private static bool Evaluate(ProgramNode node)
+        public override bool VisitProgram(ProgramNode node)
         {
-            var valid = node.VarDecls.Aggregate(true, (valid, decl) => valid & Evaluate(decl))
+            var valid = node.VarDecls.Aggregate(true, (valid, decl) => valid & VisitVarDecl(decl))
                         & ContainsNoDuplicateVariables(node.VarDecls)
                         & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
-                        & node.Procedures.Aggregate(true, (valid, proc) => valid & Evaluate(proc))
-                        & node.Functions.Aggregate(true, (valid, func) => valid & Evaluate(func))
-                        & EvaluateStat(node.Stat);
+                        & node.Procedures.Aggregate(true, (valid, proc) => valid & VisitFunction(proc))
+                        & node.Functions.Aggregate(true, (valid, func) => valid & VisitFunction(func))
+                        & VisitStatement(node.Stat);
             if (BlaiseKeywords.IsKeyword(node.Identifier))
             {
                 Errors.Append($"{node.Identifier} is a reserved word and cannot be used as a program identifier.");
@@ -28,7 +26,7 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(VarDeclNode node)
+        public override bool VisitVarDecl(VarDeclNode node)
         {
             if (BlaiseKeywords.IsKeyword(node.Identifier))
             {
@@ -38,15 +36,15 @@ namespace Blaise2.Ast
             return true;
         }
 
-        private static bool Evaluate(BlockNode node) => node.Stats.Aggregate(true, (valid, stat) => valid & EvaluateStat(stat));
+        public override bool VisitBlock(BlockNode node) => node.Stats.Aggregate(true, (valid, stat) => valid & VisitStatement(stat));
 
-        private static bool Evaluate(WriteNode node) => EvaluateExpression(node.Expression);
+        public override bool VisitWrite(WriteNode node) => VisitExpression(node.Expression);
 
-        private static bool Evaluate(AssignmentNode node)
+        public override bool VisitAssignment(AssignmentNode node)
         {
             node.VarInfo = ReferenceResolver.FindVariable(node, node.Identifier);
             var valid = node.VarInfo is not null
-                 & EvaluateExpression(node.Expression);
+                 & VisitExpression(node.Expression);
             var varType = node.VarInfo?.VarDecl.BlaiseType;
             if (varType is null)
             {
@@ -58,7 +56,7 @@ namespace Blaise2.Ast
             {
                 return valid;
             }
-            if (IsConstantNode(node.Expression))
+            if (node.Expression is IConstantNode)
             {
                 var promoted = PromoteAssignmentExpressionOrEmpty(node.Expression, varType.BasicType);
                 if (!promoted.IsEmpty())
@@ -75,7 +73,7 @@ namespace Blaise2.Ast
             return false;
         }
 
-        private static bool Evaluate(FunctionNode node)
+        public override bool VisitFunction(FunctionNode node)
         {
             var valid = (node.IsFunction && node.ReturnType is not null)
                       | !node.IsFunction;
@@ -83,9 +81,9 @@ namespace Blaise2.Ast
             valid = valid
                 & ContainsNoDuplicateVariables(varDecls)
                 & ContainsNoDuplicateFunctionSignatures(node.Functions.Concat(node.Procedures))
-                & node.Procedures.Aggregate(true, (valid, proc) => valid & Evaluate(proc))
-                & node.Functions.Aggregate(true, (valid, func) => valid & Evaluate(func))
-                & EvaluateStat(node.Stat);
+                & node.Procedures.Aggregate(true, (valid, proc) => valid & VisitFunction(proc))
+                & node.Functions.Aggregate(true, (valid, func) => valid & VisitFunction(func))
+                & VisitStatement(node.Stat);
             if (BlaiseKeywords.IsKeyword(node.Identifier))
             {
                 Errors.Append($"{node.Identifier} is a reserved word and cannot be used as a function identifier.");
@@ -95,7 +93,7 @@ namespace Blaise2.Ast
             {
                 return valid;
             }
-            else if (!node.IsFunction)
+            else if (!node.IsFunction) //add explicit return to procedure with implicit terminal return.
             {
                 var retNode = Build<ReturnNode>(n => n.Expression = (AbstractTypedAstNode)AbstractAstNode.Empty).WithParent(node);
                 switch (node.Stat)
@@ -103,7 +101,7 @@ namespace Blaise2.Ast
                     case BlockNode block:
                         block.Stats.Add(retNode);
                         return valid;
-                    case AbstractAstNode when IsStatButNotBlockOrReturn(node.Stat):
+                    case not (ReturnNode or BlockNode):
                         node.Stat = Build<BlockNode>(n => n.Stats = new List<AbstractAstNode>() { node.Stat, retNode }).WithParent(node);
                         return valid;
                 }
@@ -112,11 +110,11 @@ namespace Blaise2.Ast
             return false;
         }
 
-        private static bool Evaluate(IfNode node)
+        public override bool VisitIf(IfNode node)
         {
-            var valid = EvaluateExpression(node.Condition)
-                    & EvaluateStat(node.ThenStat)
-                    & EvaluateStat(node.ElseStat);
+            var valid = VisitExpression(node.Condition)
+                    & VisitStatement(node.ThenStat)
+                    & VisitStatement(node.ElseStat);
             if (TypeResolver.ResolveType(node.Condition).BasicType != BOOLEAN)
             {
                 Errors.Append("Cannot resolve if condition to a bool.");
@@ -125,11 +123,11 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(LoopNode node)
+        public override bool VisitLoop(LoopNode node)
         {
-            var valid = EvaluateExpression(node.Condition)
-                      & EvaluateStat(node.Body);
-            if ((node.Condition as AbstractTypedAstNode).GetExprType().BasicType != BOOLEAN)
+            var valid = VisitExpression(node.Condition)
+                      & VisitStatement(node.Body);
+            if (node.Condition.GetExprType().BasicType != BOOLEAN)
             {
                 Errors.Append("Cannot resolve loop condition to a bool.");
                 return false;
@@ -137,10 +135,10 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(ForLoopNode node)
+        public override bool VisitForLoop(ForLoopNode node)
         {
-            var valid = Evaluate((LoopNode)node)
-                      & Evaluate(node.Assignment);
+            var valid = VisitLoop(node)
+                      & VisitAssignment(node.Assignment);
             var iterType = node.Assignment.VarInfo.VarDecl.BlaiseType.BasicType;
             if (iterType is not INTEGER)
             {
@@ -156,15 +154,15 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(SwitchNode node)
+        public override bool VisitSwitch(SwitchNode node)
         {
-            var valid = EvaluateExpression(node.Input);
+            var valid = VisitExpression(node.Input);
             var inType = TypeResolver.ResolveType(node.Input);
             valid = inType.IsValid()
-                    & node.Cases.Aggregate(true, (valid, caseNode) => valid & Evaluate(caseNode));
+                    & node.Cases.Aggregate(true, (valid, caseNode) => valid & VisitSwitchCase(caseNode));
             if (!node.Default.IsEmpty())
             {
-                valid = valid & EvaluateStat(node.Default);
+                valid = valid & VisitStatement(node.Default);
             }
             if (!IsValidSwitchInput(inType))
             {
@@ -180,15 +178,15 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(SwitchCaseNode node)
+        public bool VisitSwitchCase(SwitchCaseNode node)
         {
-            return EvaluateExpression(node.Case)
-                & EvaluateStat(node.Stat);
+            return VisitExpression(node.Case)
+                & VisitStatement(node.Stat);
         }
 
-        private static bool Evaluate(ReturnNode node)
+        public override bool VisitReturn(ReturnNode node)
         {
-            var valid = EvaluateExpression(node.Expression);
+            var valid = VisitExpression(node.Expression);
             var containingFunction = GetContainingFunction(node.Parent);
             if (containingFunction is not FunctionNode)
             {
@@ -213,9 +211,9 @@ namespace Blaise2.Ast
             }
         }
 
-        private static bool Evaluate(BinaryOpNode node)
+        public override bool VisitBinaryOperator(BinaryOpNode node)
         {
-            var valid = EvaluateExpression(node.Left) & EvaluateExpression(node.Right);
+            var valid = VisitExpression(node.Left) & VisitExpression(node.Right);
             if (!TypeResolver.ResolveType(node).IsValid())
             {
                 Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
@@ -224,9 +222,9 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(BooleanOpNode node)
+        public override bool VisitBooleanOperator(BooleanOpNode node)
         {
-            var valid = EvaluateExpression(node.Left) & EvaluateExpression(node.Right);
+            var valid = VisitExpression(node.Left) & VisitExpression(node.Right);
             if (!TypeResolver.ResolveType(node).IsValid())
             {
                 Errors.Append($"Cannot apply operator {node.Operator} to types {node.Left.GetExprType()}, {node.Right.GetExprType()}");
@@ -235,9 +233,9 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(LogicalOpNode node)
+        public override bool VisitLogicalOperator(LogicalOpNode node)
         {
-            var valid = EvaluateExpression(node.Left) & EvaluateExpression(node.Right);
+            var valid = VisitExpression(node.Left) & VisitExpression(node.Right);
             if (!TypeResolver.ResolveType(node).IsValid()
                 | node.LeftType.BasicType is not BOOLEAN
                 | node.RightType.BasicType is not BOOLEAN)
@@ -248,9 +246,9 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(NotOpNode node)
+        public override bool VisitNotOperator(NotOpNode node)
         {
-            var valid = EvaluateExpression(node.Expression);
+            var valid = VisitExpression(node.Expression);
             if (TypeResolver.ResolveType(node.Expression).BasicType != BOOLEAN)
             {
                 Errors.Append($"Could not resolve Not operand to a boolean. Got {node.Expression.GetExprType()}.");
@@ -259,9 +257,9 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(FunctionCallNode node)
+        public override bool VisitCall(FunctionCallNode node)
         {
-            var valid = node.Arguments.Aggregate(true, (valid, arg) => valid = valid & EvaluateExpression(arg));
+            var valid = node.Arguments.Aggregate(true, (valid, arg) => valid = valid & VisitExpression(arg));
             node.CallTarget = ReferenceResolver.FindFunction(node, node.Identifier, node.IsFunction);
             if (node.CallTarget is null)
             {
@@ -276,7 +274,7 @@ namespace Blaise2.Ast
             return valid;
         }
 
-        private static bool Evaluate(VarRefNode node)
+        public override bool VisitVarRef(VarRefNode node)
         {
             node.VarInfo = ReferenceResolver.FindVariable(node, node.Identifier);
             if (node.VarInfo is null)
@@ -287,36 +285,16 @@ namespace Blaise2.Ast
             return true;
         }
 
-        private static bool EvaluateStat(AbstractAstNode stat) => stat switch
-        {
-            BlockNode block => Evaluate(block),
-            WriteNode write => Evaluate(write),
-            AssignmentNode assign => Evaluate(assign),
-            IfNode ifn => Evaluate(ifn),
-            ForLoopNode forl => Evaluate(forl),
-            LoopNode loop => Evaluate(loop),
-            SwitchNode switcher => Evaluate(switcher),
-            ReturnNode ret => Evaluate(ret),
-            FunctionCallNode call => Evaluate(call),
-            AbstractAstNode aan when aan.IsEmpty() => true,
-            _ => throw new InvalidOperationException($"Unexpected node type {stat.GetType()} encountered during Ast evaluation.")
-        };
+        public override bool VisitBoolean(BooleanNode node) => true;
 
-        private static bool EvaluateExpression(AbstractTypedAstNode expr) => expr switch
-        {
-            LogicalOpNode logop => Evaluate(logop),
-            BooleanOpNode boolop => Evaluate(boolop),
-            BinaryOpNode binop => Evaluate(binop),
-            NotOpNode notop => Evaluate(notop),
-            FunctionCallNode call => Evaluate(call),
-            VarRefNode varref => Evaluate(varref),
-            IntegerNode => true,
-            RealNode => true,
-            BooleanNode => true,
-            CharNode => true,
-            StringNode => true,
-            AbstractTypedAstNode atan when atan.IsEmpty() => true,
-            _ => throw new InvalidOperationException($"Invalid node type {expr.GetType()} detected during Ast Evaluation")
-        };
+        public override bool VisitChar(CharNode node) => true;
+
+        public override bool VisitInteger(IntegerNode node) => true;
+
+        public override bool VisitReal(RealNode node) => true;
+
+        public override bool VisitString(StringNode node) => true;
+
+        public override bool VisitEmpty(AbstractAstNode node) => true;
     }
 }
