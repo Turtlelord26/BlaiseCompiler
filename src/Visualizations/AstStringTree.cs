@@ -3,118 +3,75 @@ using Blaise2.Ast;
 
 namespace Blaise2.Visualizations
 {
-    public class AstStringTree : AstVisitorBase<string>
+    public class AstStringTree : AbstractAstVisitor<string>
     {
-        public override string Visit(ProgramNode node)
-        {
-            var s = "(program";
+        public override string VisitProgram(ProgramNode node) =>
+            "(program"
+            + $" (vars {string.Join(" ", node.VarDecls.Select(v => VisitVarDecl(v)))})"
+            + $" (procedures {string.Join(" ", node.Procedures.Select(v => VisitFunction(v)))})"
+            + $" (functions {string.Join(" ", node.Functions.Select(v => VisitFunction(v)))})"
+            + $" {VisitStatement(node.Stat)})";
 
-            if (node.VarDecls.Count > 0)
-            {
-                s += " (vars " + string.Join(" ", node.VarDecls.Select(v => Visit((dynamic)v))) + ")";
-            }
+        public override string VisitVarDecl(VarDeclNode node) => $"({node.Identifier}: {node.BlaiseType})";
 
-            if (node.Procedures.Count > 0)
-            {
-                s += " (procedures " + string.Join(" ", node.Procedures.Select(v => Visit((dynamic)v))) + ")";
-            }
+        public override string VisitFunction(FunctionNode node) => node.IsFunction
+            ? $"(function {node.ReturnType} {node.Identifier}" + VisitStatement(node.Stat) + ")"
+            : $"(procedure {node.Identifier}" + VisitStatement(node.Stat) + ")";
 
-            if (node.Functions.Count > 0)
-            {
-                s += " (functions " + string.Join(" ", node.Functions.Select(v => Visit((dynamic)v))) + ")";
-            }
+        public override string VisitBlock(BlockNode node) =>
+            "(block " + string.Join(" ", node.Stats.Select(s => VisitStatement(s))) + ")";
 
-            s += " " + Visit((dynamic)node.Stat);
+        public override string VisitWrite(WriteNode node) =>
+            $"({(node.WriteNewline ? "writeln" : "write")} " + VisitExpression(node.Expression) + ")";
 
-            s += ")";
-            return s;
-        }
+        public override string VisitAssignment(AssignmentNode node) =>
+            $"(assign {node.Identifier} " + VisitExpression(node.Expression) + ")";
 
-        public override string Visit(VarDeclNode node)
-        {
-            return $"({node.Identifier}: {node.BlaiseType})";
-        }
+        public override string VisitReturn(ReturnNode node) =>
+            $"(return {VisitExpression(node.Expression)})";
 
-        public override string Visit(FunctionNode node)
-        {
-            return node.IsFunction ? $"(function {node.ReturnType} {node.Identifier}" + Visit((dynamic)node.Stat) + ")"
-                                   : $"(procedure {node.Identifier}" + Visit((dynamic)node.Stat) + ")";
-        }
+        public override string VisitCall(FunctionCallNode node) =>
+            $"(invoke {node.Identifier} {string.Join(" ", node.Arguments.Select(e => VisitExpression(e)))})";
 
-        public override string Visit(BlockNode node)
-        {
-            return "(block " + string.Join(" ", node.Stats.Select(s => Visit((dynamic)s))) + ")";
-        }
+        public override string VisitIf(IfNode node) =>
+            $"(if {VisitExpression(node.Condition)} {VisitStatement(node.ThenStat)} {VisitStatement(node.ElseStat)})";
 
-        public override string Visit(WriteNode node)
-        {
-            var cmd = node.WriteNewline ? "writeln" : "write";
-            return $"({cmd} " + Visit((dynamic)node.Expression) + ")";
-        }
+        public override string VisitLoop(LoopNode node) =>
+            $"({node.LoopType} {VisitExpression(node.Condition)} {VisitStatement(node.Body)})";
 
-        public override string Visit(AssignmentNode node)
-        {
-            return $"(assign {node.Identifier} " + Visit((dynamic)node.Expression) + ")";
-        }
+        public override string VisitForLoop(ForLoopNode node) =>
+            $"(forloop {VisitAssignment(node.Assignment)} {VisitExpression(node.Condition)} {VisitStatement(node.Body)})";
 
-        public override string Visit(ReturnNode node)
-        {
-            return $"(return {Visit((dynamic)node.Expression)}";
-        }
+        public override string VisitSwitch(SwitchNode node) =>
+            $"(switch {VisitExpression(node.Input)} {string.Join(' ', node.Cases.Select(c => VisitSwitchCase(c)))})";
 
-        public override string Visit(FunctionCallNode node)
-        {
-            return $"(invoke {node.Identifier} " + string.Join(" ", node.Arguments.Select(e => Visit((dynamic)e))) + ")";
-        }
+        public string VisitSwitchCase(SwitchCaseNode node) =>
+            $"(case {VisitExpression(node.Case)} {VisitStatement(node.Stat)})";
 
-        public override string Visit(IntegerNode node)
-        {
-            return node.IntValue.ToString();
-        }
+        public override string VisitInteger(IntegerNode node) => node.IntValue.ToString();
 
-        public override string Visit(RealNode node)
-        {
-            return node.RealValue.ToString();
-        }
+        public override string VisitReal(RealNode node) => node.RealValue.ToString();
 
-        public override string Visit(BooleanNode node)
-        {
-            return node.BoolValue.ToString();
-        }
+        public override string VisitBoolean(BooleanNode node) => node.BoolValue.ToString();
 
-        public override string Visit(CharNode node)
-        {
-            return node.CharValue.ToString();
-        }
+        public override string VisitChar(CharNode node) => node.CharValue.ToString();
 
-        public override string Visit(StringNode node)
-        {
-            return node.StringValue;
-        }
+        public override string VisitString(StringNode node) => node.StringValue;
 
-        public override string Visit(VarRefNode node)
-        {
-            return $"(var {node.Identifier})";
-        }
+        public override string VisitVarRef(VarRefNode node) => $"(var {node.Identifier})";
 
-        public override string Visit(BinaryOpNode node)
-        {
-            return $"(binop {node.Operator} {Visit((dynamic)node.Left)} {Visit((dynamic)node.Right)}";
-        }
+        public override string VisitBinaryOperator(BinaryOpNode node) =>
+            $"(binop {node.Operator} {VisitExpression(node.Left)} {VisitExpression(node.Right)})";
 
-        public override string Visit(BooleanOpNode node)
-        {
-            return $"(binop {node.Operator} {Visit((dynamic)node.Left)} {Visit((dynamic)node.Right)}";
-        }
+        public override string VisitBooleanOperator(BooleanOpNode node) =>
+            $"(binop {node.Operator} {VisitExpression(node.Left)} {VisitExpression(node.Right)})";
 
-        public override string Visit(LogicalOpNode node)
-        {
-            return $"(binop {node.Operator} {Visit((dynamic)node.Left)} {Visit((dynamic)node.Right)}";
-        }
+        public override string VisitLogicalOperator(LogicalOpNode node) =>
+            $"(binop {node.Operator} {VisitExpression(node.Left)} {VisitExpression(node.Right)})";
 
-        public override string Visit(NotOpNode node)
-        {
-            return $"(not {Visit((dynamic)node.Expression)}";
-        }
+        public override string VisitNotOperator(NotOpNode node) =>
+            $"(not {VisitExpression(node.Expression)})";
+
+        public override string VisitEmpty(AbstractAstNode node) => string.Empty;
     }
 }

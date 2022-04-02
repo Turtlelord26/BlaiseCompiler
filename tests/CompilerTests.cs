@@ -1,6 +1,7 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using static Blaise2.Visualizations.VisualizationExtensions;
+using Blaise2.Ast;
+using Blaise2.Visualizations;
 
 namespace Blaise2.Tests
 {
@@ -524,8 +525,8 @@ namespace Blaise2.Tests
             // Act
             Assert.IsTrue(compiler.Compile(src));
             Assert.IsTrue(controlCompiler.Compile(control));
-            var stringTree = compiler.Ast.ToStringTree();
-            var controlTree = controlCompiler.Ast.ToStringTree();
+            var stringTree = new AstStringTree().VisitProgram((ProgramNode)compiler.Ast);
+            var controlTree = new AstStringTree().VisitProgram((ProgramNode)controlCompiler.Ast);
             // Assert
             Assert.AreEqual(controlTree, stringTree);
         }

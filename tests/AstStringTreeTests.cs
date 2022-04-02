@@ -17,7 +17,7 @@ namespace Blaise2.Tests
             var ast = new AstGenerator().Visit(compiler.ParseTree);
 
             // Act
-            Assert.IsNotNull(ast.ToStringTree());
+            Assert.IsNotNull(new AstStringTree().VisitProgram((ProgramNode)ast));
         }
     }
 }
