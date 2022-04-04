@@ -24,13 +24,17 @@ namespace Blaise2.Ast
         public abstract BlaiseType GetExprType();
     }
 
-    public partial class ProgramNode : AbstractAstNode, IVarOwner
+    public class ProgramNode : AbstractAstNode, IVarOwner
     {
         public string Identifier { get; set; }
         public List<VarDeclNode> VarDecls { get; set; }
         public List<FunctionNode> Procedures { get; set; }
         public List<FunctionNode> Functions { get; set; }
         public AbstractAstNode Stat { get; set; }
+
+        public virtual SymbolInfo GetVarByName(string name) => VarDecls.Where(v => v.Identifier == name)
+                                                                       .Select(v => new SymbolInfo { VarType = VarType.Global, VarDecl = v })
+                                                                       .FirstOrDefault();
     }
 
     public class VarDeclNode : AbstractAstNode
@@ -40,11 +44,18 @@ namespace Blaise2.Ast
         public BlaiseType BlaiseType { get; set; }
     }
 
-    public partial class FunctionNode : ProgramNode
+    public class FunctionNode : ProgramNode
     {
         public bool IsFunction { get; set; }
         public BlaiseType ReturnType { get; set; }
         public List<VarDeclNode> Params { get; set; }
+
+        public override SymbolInfo GetVarByName(string name) => VarDecls.Where(v => v.Identifier == name)
+                                                                        .Select(v => new SymbolInfo { VarType = VarType.Local, VarDecl = v })
+                                                                        .FirstOrDefault()
+                                                                ?? Params.Where(p => p.Identifier == name)
+                                                                         .Select(p => new SymbolInfo { VarType = VarType.Argument, VarDecl = p })
+                                                                         .FirstOrDefault();
     }
 
     public class BlockNode : AbstractAstNode

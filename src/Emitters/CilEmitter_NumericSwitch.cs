@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Blaise2.Ast;
 using Blaise2.Emitters.EmitterSubcomponents;
-using static Blaise2.ConstType;
+using static Blaise2.Ast.ConstType;
 using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Emitters

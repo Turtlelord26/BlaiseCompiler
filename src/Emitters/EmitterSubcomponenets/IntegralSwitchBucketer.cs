@@ -63,19 +63,4 @@ namespace Blaise2.Emitters.EmitterSubcomponents
 
         private static bool isDense(int count, int range) => count * 2 > range;
     }
-
-    public class Bucket
-    {
-        public List<SwitchCaseNode> Cases { get; init; }
-
-        public Bucket(List<SwitchCaseNode> list) => Cases = list;
-
-        public Bucket(SwitchCaseNode node) => Cases = new() { node };
-
-        public Bucket Combine(Bucket other)
-        {
-            this.Cases.AddRange(other.Cases);
-            return this;
-        }
-    }
 }

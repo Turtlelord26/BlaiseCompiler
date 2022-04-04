@@ -3,6 +3,21 @@ using Blaise2.Ast;
 
 namespace Blaise2.Emitters.EmitterSubcomponents
 {
+    public class Bucket
+    {
+        public List<SwitchCaseNode> Cases { get; init; }
+
+        public Bucket(List<SwitchCaseNode> list) => Cases = list;
+
+        public Bucket(SwitchCaseNode node) => Cases = new() { node };
+
+        public Bucket Combine(Bucket other)
+        {
+            this.Cases.AddRange(other.Cases);
+            return this;
+        }
+    }
+
     public class SwitchBranchData
     {
         public List<ILabeledBranch> Branches { get; init; } = new();

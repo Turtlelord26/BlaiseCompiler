@@ -60,7 +60,7 @@ namespace Blaise2
                     Console.Error.WriteLine(string.Join("\n", evaluator.Errors));
                     throw new InvalidOperationException(string.Join("\n", evaluator.Errors));
                 }
-                new AstFolder().VisitProgram(Ast);
+                Ast = (ProgramNode)new AstFolder().VisitProgram(Ast);
                 if (dot)
                 {
                     OutputDot();
