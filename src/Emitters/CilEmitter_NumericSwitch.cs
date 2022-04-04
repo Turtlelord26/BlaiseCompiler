@@ -8,7 +8,7 @@ using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Emitters
 {
-    public partial class CilEmitter
+    public partial class CilEmitter : AbstractAstVisitor<string>
     {
         private const int LinearSearchThreshold = 3;
         private const string IntegralEqualityCheck = "beq";
@@ -25,7 +25,7 @@ namespace Blaise2.Emitters
             var ending = @$"
     {endLabel}: nop";
             var switchLocal = MakeAndInjectLocalVar(switchType, node);
-            var setup = @$"{EmitExpression(node.Input)}
+            var setup = @$"{VisitExpression(node.Input)}
     stloc {switchLocal}";
             var branchData = MakeBranchData(node, defaultLabel);
             return string.Join(string.Empty,
@@ -58,7 +58,7 @@ namespace Blaise2.Emitters
 
         private string EmitLabeledStat(LabeledStat labeledStat, string endLabel) => @$"
     
-    {labeledStat.Label}: nop{EmitStat(labeledStat.Stat)}
+    {labeledStat.Label}: nop{VisitStatement(labeledStat.Stat)}
     {EmitBranchToEndLabelUnlessStatReturns(endLabel, labeledStat.Stat)}";
 
         private string EmitBranchesWithBinarySearch(List<ILabeledBranch> branches, string switchLocal) =>
@@ -127,7 +127,7 @@ namespace Blaise2.Emitters
             AbstractAstNode empty when empty.IsEmpty() => string.Empty,
             AbstractAstNode stat => @$"
     {defaultLabel}: nop
-    {EmitStat(defaultStat)}"
+    {VisitStatement(defaultStat)}"
         };
     }
 }

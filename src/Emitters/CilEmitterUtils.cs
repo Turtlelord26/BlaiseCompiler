@@ -6,7 +6,7 @@ using static Blaise2.Ast.BlaiseTypeEnum;
 
 namespace Blaise2.Emitters
 {
-    public partial class CilEmitter
+    public partial class CilEmitter : AbstractAstVisitor<string>
     {
         private static string Preamble()
         {

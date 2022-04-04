@@ -6,7 +6,7 @@ using Blaise2.Emitters.EmitterSubcomponents;
 
 namespace Blaise2.Emitters
 {
-    public partial class CilEmitter
+    public partial class CilEmitter : AbstractAstVisitor<string>
     {
         private const int MinimumStringCasesToUseHashing = 7;
         private const string StringEqualityCheck = @"call bool [System.Private.CoreLib]System.String::op_Equality(string, string)
@@ -39,12 +39,12 @@ namespace Blaise2.Emitters
 
         private string MakeStringSwitchSetup(AbstractTypedAstNode input, string switchLocal, string stringHashLocal, bool useHashing) =>
             useHashing
-            ? @$"{EmitExpression(input)}
+            ? @$"{VisitExpression(input)}
     dup
     stloc {switchLocal}
     callvirt instance int32 [System.Private.CoreLib]System.Object::GetHashCode()
     stloc {stringHashLocal}"
-            : @$"{EmitExpression(input)}
+            : @$"{VisitExpression(input)}
     stloc {switchLocal}";
 
         private SwitchBranchData StringSwitchData(List<SwitchCaseNode> cases) =>

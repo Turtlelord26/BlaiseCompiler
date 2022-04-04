@@ -8,54 +8,19 @@ using static Blaise2.Ast.VarType;
 
 namespace Blaise2.Emitters
 {
-    public partial class CilEmitter
+    public partial class CilEmitter : AbstractAstVisitor<string>
     {
         private const string nopDelimiter = @"
     nop";
         private string ProgramName;
         public List<VarDeclNode> MainLocals { get; init; } = new();
 
-        public string EmitCil(ProgramNode program) => EmitProgram(program);
-
-        private string EmitStat(AbstractAstNode node) => node switch
-        {
-            AssignmentNode assign => EmitAssignment(assign),
-            WriteNode write => EmitWrite(write),
-            FunctionCallNode call => EmitCall(call),
-            IfNode ifStat => EmitIf(ifStat),
-            ForLoopNode forLoop => EmitForLoop(forLoop),
-            LoopNode loop => EmitLoop(loop),
-            SwitchNode switchStat => EmitSwitch(switchStat),
-            ReturnNode ret => EmitReturn(ret),
-            BlockNode block => EmitBlock(block),
-            AbstractAstNode aan when aan.IsEmpty() => String.Empty,
-            _ => throw new InvalidOperationException($"Unrecognized node {node.GetType()} encountered while emitting.")
-        };
-
-        private string EmitExpression(AbstractTypedAstNode node) => node switch
-        {
-            LogicalOpNode logop => EmitLogOp(logop),
-            BooleanOpNode boolop => EmitBooleanOp(boolop),
-            BinaryOpNode binop => EmitBinaryOp(binop),
-            NotOpNode notop => EmitNotOp(notop),
-            FunctionCallNode call => EmitCall(call),
-            VarRefNode varref => EmitVarRef(varref),
-            BooleanNode booln => EmitBoolean(booln),
-            CharNode charn => EmitChar(charn),
-            IntegerNode intn => EmitInt(intn),
-            RealNode real => EmitReal(real),
-            StringNode stringn => EmitString(stringn),
-            AbstractTypedAstNode atan when atan.IsEmpty() => String.Empty,
-            _ => throw new InvalidOperationException($"Unrecognized node {node.GetType()} encountered while emitting.")
-        };
-
-        private string EmitProgram(ProgramNode node)
+        public override string VisitProgram(ProgramNode node)
         {
             ProgramName = node.Identifier;
-            var body = EmitStat(node.Stat);
-            var fields = node.VarDecls.Aggregate(string.Empty, (cil, v) => cil += $@"
-    .field public {v.BlaiseType.ToCilType()} {v.Identifier}");
-            var methods = node.Procedures.Concat(node.Functions).Aggregate("\n", (cil, func) => cil += EmitFunction(func));
+            var body = VisitStatement(node.Stat);
+            var fields = node.VarDecls.Aggregate(string.Empty, (cil, v) => cil += VisitVarDecl(v));
+            var methods = node.Procedures.Concat(node.Functions).Aggregate("\n", (cil, func) => cil += VisitFunction(func));
             var localIndex = 1;
             var mainLocals = MainLocals.Aggregate(string.Empty, (cil, local) => cil += $",\n        [{localIndex++}] {local.BlaiseType.ToCilType()} {local.Identifier}");
             return @$"{Preamble()}
@@ -85,9 +50,12 @@ namespace Blaise2.Emitters
 ";
         }
 
-        private string EmitFunction(FunctionNode node)
+        public override string VisitVarDecl(VarDeclNode node) => $@"
+    .field public {node.BlaiseType.ToCilType()} {node.Identifier}";
+
+        public override string VisitFunction(FunctionNode node)
         {
-            var body = EmitStat(node.Stat);
+            var body = VisitStatement(node.Stat);
             var isFunction = node.IsFunction;
             var returnType = isFunction ? node.ReturnType.ToCilType() : "void";
             var paramsList = string.Join(",\n\t\t", node.Params.Select(p => $"{p.BlaiseType.ToCilType()} {p.Identifier}"));
@@ -109,23 +77,23 @@ namespace Blaise2.Emitters
             //THIS IS WHERE INNER FUNCS AND PROCS WOULD GO
             if (node.Functions.Count() > 0 | node.Procedures.Count() > 0)
             {
-                throw new NotImplementedException("Can't emit nested functions yet");
+                throw new NotImplementedException("Can't Visit nested functions yet");
             }
             return output;
         }
 
-        private string EmitBlock(BlockNode node) => string.Join(nopDelimiter, node.Stats.Select(stat => EmitStat(stat)));
+        public override string VisitBlock(BlockNode node) => string.Join(nopDelimiter, node.Stats.Select(stat => VisitStatement(stat)));
 
-        private string EmitWrite(WriteNode node)
+        public override string VisitWrite(WriteNode node)
         {
             var exprType = node.Expression.GetExprType().ToCilType();
             var method = node.WriteNewline ? "WriteLine" : "Write";
             return @$"
-    {EmitExpression(node.Expression)}
+    {VisitExpression(node.Expression)}
     call void [System.Console]System.Console::{method}({exprType})";
         }
 
-        private string EmitAssignment(AssignmentNode node)
+        public override string VisitAssignment(AssignmentNode node)
         {
             var info = node.VarInfo ?? throw new InvalidOperationException($"Couldn't resolve variable {node.Identifier}.");
             var varType = info.VarDecl.BlaiseType;
@@ -135,64 +103,64 @@ namespace Blaise2.Emitters
             return info.VarType switch
             {
                 Global => @$"
-    ldloc.0{EmitExpression(node.Expression)}{typeConversion}
+    ldloc.0{VisitExpression(node.Expression)}{typeConversion}
     stfld {varType.ToCilType()} {ProgramName}::{info.VarDecl.Identifier}",
                 Local => @$"
-    {EmitExpression(node.Expression)}{typeConversion}
+    {VisitExpression(node.Expression)}{typeConversion}
     stloc {info.VarDecl.Identifier}",
                 Argument => @$"
-    {EmitExpression(node.Expression)}{typeConversion}
+    {VisitExpression(node.Expression)}{typeConversion}
     starg.s {info.VarDecl.Identifier}",
                 _ => throw new InvalidOperationException($"Invalid VarType {info.VarType}")
             };
         }
 
-        private string EmitIf(IfNode node)
+        public override string VisitIf(IfNode node)
         {
             var thenLabel = MakeLabel();
             var endLabel = MakeLabel();
             return @$"
-    {EmitExpression(node.Condition)}
+    {VisitExpression(node.Condition)}
     brtrue.s {thenLabel}
-    {EmitStat(node.ElseStat)}
+    {VisitStatement(node.ElseStat)}
     {EmitBranchToEndLabelUnlessStatReturns(endLabel, node.ElseStat)}
     {thenLabel}: nop
-    {EmitStat(node.ThenStat)}
+    {VisitStatement(node.ThenStat)}
     {EmitBranchToEndLabelUnlessStatReturns(endLabel, node.ThenStat)}
     {EmitLabelUnlessStatReturns(endLabel, node.ThenStat)}";
         }
 
-        private string EmitLoop(LoopNode node)
+        public override string VisitLoop(LoopNode node)
         {
             var bodyLabel = MakeLabel();
             var endLabel = MakeLabel();
             var brEnd = node.LoopType == Until ? "brtrue" : "brfalse";
             var brBody = node.LoopType == Until ? "brfalse" : "brtrue";
-            var conditionCil = EmitExpression(node.Condition);
+            var conditionCil = VisitExpression(node.Condition);
             return @$"
     {conditionCil}
     {brEnd}.s {endLabel}
     {bodyLabel}: nop
-    {EmitStat(node.Body)}
+    {VisitStatement(node.Body)}
     {conditionCil}
     {brBody}.s {bodyLabel}
     {endLabel}: nop";
         }
 
-        private string EmitForLoop(ForLoopNode node) => EmitAssignment(node.Assignment) + EmitLoop(node);
+        public override string VisitForLoop(ForLoopNode node) => VisitAssignment(node.Assignment) + VisitLoop(node);
 
-        private string EmitSwitch(SwitchNode node) => node.Input.GetExprType() switch
+        public override string VisitSwitch(SwitchNode node) => node.Input.GetExprType() switch
         {
             { BasicType: CHAR or INTEGER or REAL } => EmitNumericSwitch(node),
             { BasicType: STRING } => EmitStringSwitch(node),
-            BlaiseType bt => throw new InvalidOperationException($"Encountered invalid switch input type {bt} while emitting.")
+            BlaiseType bt => throw new InvalidOperationException($"Encountered invalid switch input type {bt} while Visitting.")
         };
 
-        private string EmitCall(FunctionCallNode node)
+        public override string VisitCall(FunctionCallNode node)
         {
             var callTarget = node.CallTarget;
             var paramTypes = string.Join(", ", callTarget.Params.Select(p => p.BlaiseType.ToCilType()));
-            var argExprs = string.Join('\n', node.Arguments.Select(arg => EmitExpression(arg)));
+            var argExprs = string.Join('\n', node.Arguments.Select(arg => VisitExpression(arg)));
             var returnType = callTarget.IsFunction ? callTarget.ReturnType.ToCilType() : "void";
             return @$"
     ldloc.0
@@ -200,25 +168,25 @@ namespace Blaise2.Emitters
     call instance {returnType} {ProgramName}::{callTarget.Identifier}({paramTypes})";
         }
 
-        private string EmitReturn(ReturnNode node) => @$"{EmitExpression(node.Expression)}
+        public override string VisitReturn(ReturnNode node) => @$"{VisitExpression(node.Expression)}
     ret";
 
-        private string EmitInt(IntegerNode node) => @$"
+        public override string VisitInteger(IntegerNode node) => @$"
     ldc.i4.s {node.IntValue}";
 
-        private string EmitReal(RealNode node) => @$"
+        public override string VisitReal(RealNode node) => @$"
     ldc.r8 {node.RealValue}";
 
-        private string EmitBoolean(BooleanNode node) => @$"
+        public override string VisitBoolean(BooleanNode node) => @$"
     ldc.i4.{(node.BoolValue ? 1 : 0)}";
 
-        private string EmitChar(CharNode node) => @$"
+        public override string VisitChar(CharNode node) => @$"
     ldc.i4.s {(int)node.CharValue}";
 
-        private string EmitString(StringNode node) => @$"
+        public override string VisitString(StringNode node) => @$"
     ldstr ""{node.StringValue}""";
 
-        private string EmitVarRef(VarRefNode node)
+        public override string VisitVarRef(VarRefNode node)
         {
             var info = node.VarInfo ?? throw new InvalidOperationException($"Couldn't resolve variable {node.Identifier}.");
             return info.VarType switch
@@ -234,14 +202,14 @@ namespace Blaise2.Emitters
             };
         }
 
-        private string EmitBinaryOp(BinaryOpNode node)
+        public override string VisitBinaryOperator(BinaryOpNode node)
         {
-            var output = EmitExpression(node.Left);
+            var output = VisitExpression(node.Left);
             if (!node.LeftType.Equals(node.ExprType))
             {
                 output += TypeConvert(node.LeftType, node.ExprType, node);
             }
-            output += EmitExpression(node.Right);
+            output += VisitExpression(node.Right);
             if (!node.RightType.Equals(node.ExprType))
             {
                 output += TypeConvert(node.RightType, node.ExprType, node);
@@ -249,16 +217,16 @@ namespace Blaise2.Emitters
             return output + ToCilOperator(node.Operator, node.ExprType);
         }
 
-        private string EmitBooleanOp(BooleanOpNode node)
+        public override string VisitBooleanOperator(BooleanOpNode node)
         {
             var leftBasicType = node.LeftType.BasicType;
             var rightBasicType = node.RightType.BasicType;
-            var output = EmitExpression(node.Left);
+            var output = VisitExpression(node.Left);
             if (leftBasicType < rightBasicType & !node.LeftType.Equals(node.RightType))
             {
                 output += TypeConvert(node.LeftType, node.RightType, node);
             }
-            output += EmitExpression(node.Right);
+            output += VisitExpression(node.Right);
             if (leftBasicType > rightBasicType & !node.LeftType.Equals(node.RightType))
             {
                 output += TypeConvert(node.RightType, node.LeftType, node);
@@ -266,14 +234,16 @@ namespace Blaise2.Emitters
             return output + ToCilOperator(node.Operator, node.GetExprType());
         }
 
-        private string EmitLogOp(LogicalOpNode node)
+        public override string VisitLogicalOperator(LogicalOpNode node)
         {
-            return $"{EmitExpression(node.Left)}{EmitExpression(node.Right)}{ToCilOperator(node.Operator, node.GetExprType())}";
+            return $"{VisitExpression(node.Left)}{VisitExpression(node.Right)}{ToCilOperator(node.Operator, node.GetExprType())}";
         }
 
-        private string EmitNotOp(NotOpNode node)
+        public override string VisitNotOperator(NotOpNode node)
         {
-            return @$"{EmitExpression(node.Expression)}{ToCilOperator(BlaiseOperator.Not, node.GetExprType())}";
+            return @$"{VisitExpression(node.Expression)}{ToCilOperator(BlaiseOperator.Not, node.GetExprType())}";
         }
+
+        public override string VisitEmpty(AbstractAstNode node) => string.Empty;
     }
 }

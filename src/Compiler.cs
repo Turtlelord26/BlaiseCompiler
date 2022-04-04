@@ -65,7 +65,7 @@ namespace Blaise2
                 {
                     OutputDot();
                 }
-                Cil = new CilEmitter().EmitCil(Ast);
+                Cil = new CilEmitter().VisitProgram(Ast);
                 return true;
             }
             else
