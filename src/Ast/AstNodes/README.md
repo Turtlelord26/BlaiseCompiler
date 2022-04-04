@@ -18,7 +18,7 @@ IConstantNode indicates a node that holds a literal, and requires implementation
 `AstConstantComparer.cs` provides the ability to compare AstConstants without unboxing them.
 `ConstType.cs` is an enum that is referenced to determine the type of value held in an AstConstant.
 
-`VarType.cs` is an enum that classifies a variable as global, argument, or local.
-`SymbolInfo.cs` packages a VarDeclNode with a VarType value.
+`VarType.cs` is a provided enum that classifies a variable as global, argument, or local.
+`SymbolInfo.cs` is a provided data structure that packages a VarDeclNode with a VarType value.
 
 `LoopType.cs` is an enum that classifies a LoopNode as while, for, or until.
