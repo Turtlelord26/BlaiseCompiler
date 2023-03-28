@@ -1,6 +1,6 @@
 # Emitter
 
-This space contains the emitter than converts the abstract syntax tree to CIL, and utilities.
+This space contains the emitter that converts the abstract syntax tree to CIL, and utilities.
 
 ### Cil Emitter
 
